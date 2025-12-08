@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإعدادات - TaskMaster</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="i18n.js"></script>
+    <!-- Firebase SDK (v9 compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="settings.js" defer></script>
+</head>
+
+<body class="settings-page">
+
+    <main>
+        <div class="settings-container">
+            <h1>الإعدادات</h1>
+
+            <div class="setting-group">
+                <h2>اللون البارز</h2>
+                <div class="color-swatches" id="color-swatches">
+                    <div class="swatch" data-color="#0078d4" style="background-color: #0078d4;"></div>
+                    <div class="swatch" data-color="#5856d6" style="background-color: #5856d6;"></div>
+                    <div class="swatch" data-color="#34c759" style="background-color: #34c759;"></div>
+                    <div class="swatch" data-color="#ff9500" style="background-color: #ff9500;"></div>
+                    <div class="swatch" data-color="#ff3b30" style="background-color: #ff3b30;"></div>
+                    <div class="swatch" data-color="#af52de" style="background-color: #af52de;"></div>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h2>صورة الخلفية</h2>
+                <div class="background-swatches" id="background-swatches">
+                    <div class="swatch bg-swatch" data-bg="images/background.jpg"
+                        style="background-image: url('images/background.jpg');"></div>
+                    <div class="swatch bg-swatch" data-bg="images/bg2.jpg"
+                        style="background-image: url('images/bg2.jpg');"></div>
+                    <div class="swatch bg-swatch" data-bg="images/bg3.jpg"
+                        style="background-image: url('images/bg3.jpg');"></div>
+                </div>
+                <p style="font-size: 0.8em; color: #888;">ملاحظة: ستحتاج إلى إضافة الصور `bg2.jpg` و `bg3.jpg` إلى مجلد
+                    `images` لكي تعمل.</p>
+            </div>
+
+            <div class="setting-group">
+                <h2>خلفية مخصصة</h2>
+                <label for="custom-bg-input" class="btn"
+                    style="display: inline-block; width: auto; padding: 10px 20px; cursor: pointer;">اختر صورة من
+                    جهازك</label>
+                <span id="custom-bg-status" style="margin-right: 15px; font-weight: 500;"></span>
+                <input type="file" id="custom-bg-input" accept="image/*" style="display: none;">
+                <p style="font-size: 0.8em; color: #888; margin-top: 10px;">
+                    ملاحظة: من المستحسن أن تكون أبعاد الصورة 1920x1080 (دقة عالية) للحصول على أفضل مظهر.
+                </p>
+            </div>
+
+            <div class="setting-group">
+                <h2>اللغة</h2>
+                <div class="language-select-wrapper">
+                    <select id="language-select">
+                        <option value="ar">العربية</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <p style="font-size: 0.8em; color: #888;">اختر لغتك المفضلة.</p>
+            </div>
+
+            <a href="tasks.html" class="btn" style="display: inline-block; width: auto; padding: 10px 30px;">العودة
+                للمهام</a>
+
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.I18N) {
+                I18N.applySettingsPage();
+            }
+        });
+    </script>
+</body>
+
+</html>

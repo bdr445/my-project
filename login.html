@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - مدير المهام</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="i18n.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="login.js" defer></script>
+</head>
+
+<body class="login-page">
+
+    <div class="form-container">
+        <!-- Login Form -->
+        <form id="login-form">
+            <h1>تسجيل الدخول</h1>
+            <p>مرحباً بعودتك! أدخل بياناتك للمتابعة.</p>
+            <div class="form-group">
+                <label for="login-email">البريد الإلكتروني</label>
+                <input type="email" id="login-email" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">كلمة المرور</label>
+                <input type="password" id="login-password" required>
+            </div>
+            <p class="forgot-password"><a href="#" id="forgot-password-link">نسيت كلمة المرور؟</a></p>
+            <button type="submit" class="btn">دخول</button>
+            <div class="separator"><span>أو</span></div>
+            <button type="button" id="google-signin-btn-login" class="btn btn-google">الدخول عبر Google</button>
+            <p class="form-switch">ليس لديك حساب؟ <a href="#" id="show-signup">أنشئ حساباً جديداً</a></p>
+        </form>
+
+        <!-- Signup Form (hidden by default) -->
+        <form id="signup-form" class="hidden">
+            <h1>إنشاء حساب جديد</h1>
+            <p>خطوة بسيطة تفصلك عن تنظيم مهامك.</p>
+            <div class="form-group">
+                <label for="signup-email">البريد الإلكتروني</label>
+                <input type="email" id="signup-email" required>
+            </div>
+            <div class="form-group">
+                <label for="signup-password">كلمة المرور</label>
+                <input type="password" id="signup-password" required>
+            </div>
+            <button type="submit" class="btn">إنشاء حساب</button>
+            <div class="separator"><span>أو</span></div>
+            <button type="button" id="google-signin-btn-signup" class="btn btn-google">المتابعة عبر Google</button>
+            <p class="form-switch">لديك حساب بالفعل؟ <a href="#" id="show-login">سجل الدخول</a></p>
+        </form>
+
+        <!-- Reset Password Form (hidden by default) -->
+        <form id="reset-password-form" class="hidden">
+            <h1>إعادة تعيين كلمة المرور</h1>
+            <p>أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة التعيين.</p>
+            <div class="form-group">
+                <label for="reset-email">البريد الإلكتروني</label>
+                <input type="email" id="reset-email" required>
+            </div>
+            <button type="submit" class="btn">إرسال رابط إعادة التعيين</button>
+            <p class="form-switch"><a href="#" id="back-to-login">العودة لتسجيل الدخول</a></p>
+        </form>
+
+        <div id="error-message" class="error-message hidden"></div>
+
+        <a href="#" id="guest-login-btn" class="guest-link">أو جرب التطبيق كزائر</a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.I18N) {
+                I18N.applyLogin();
+            }
+        });
+    </script>
+</body>
+
+</html>

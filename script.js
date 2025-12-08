@@ -1,0 +1,976 @@
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Firebase Setup ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBHc4QygGxRb8HNQSL3S4eo9QcRCYPBDLQ",
+        authDomain: "to-do-for-school-ee688.firebaseapp.com",
+        projectId: "to-do-for-school-ee688",
+        storageBucket: "to-do-for-school-ee688.appspot.com",
+        messagingSenderId: "890456526492",
+        appId: "1:890456526492:web:30ba2e598b5df8be4b6759",
+        measurementId: "G-LT1ZCLB5E5"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let tasksCollection; // Will be defined after user logs in
+
+    // DOM Elements
+    const taskForm = document.getElementById('task-form');
+    const tasksList = document.getElementById('tasks-list');
+    const modalTitle = document.getElementById('modal-title');
+    const modalSubmitBtn = document.getElementById('modal-submit-btn');
+    const modal = document.getElementById('add-task-modal');
+    const addTaskBtn = document.getElementById('add-task-btn');
+    const alertsContainer = document.getElementById('alerts-container');
+    const closeModalBtn = document.querySelector('.close-modal-btn');
+    const categoryFilters = document.getElementById('category-filters');
+    const sortButtons = document.querySelector('.sort-options');
+    const searchInput = document.getElementById('search-input');
+    const viewOptions = document.querySelector('.view-options');
+    const confirmDeleteModal = document.getElementById('confirm-delete-modal');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const accountMenuBtn = document.getElementById('account-menu-btn');
+    const accountMenu = document.getElementById('account-menu');
+    const exportBtn = document.getElementById('export-btn');
+    const sidebar = document.getElementById('sidebar');
+    const importBtn = document.getElementById('import-btn');
+    const importModal = document.getElementById('import-modal');
+    const importForm = document.getElementById('import-form');
+    const csvFileInput = document.getElementById('csv-file-input');
+    const pageBlocker = document.getElementById('page-blocker');
+    const importStatus = document.getElementById('import-status');
+    const userNameEl = document.getElementById('user-name');
+    const userAvatarEl = document.getElementById('user-avatar');
+    const greetingTextEl = document.querySelector('.user-greeting-text');
+
+    // App State
+    let currentFilter = 'all';
+    let currentSort = 'date';
+    let currentView = localStorage.getItem('taskView') || 'list'; // Load preference
+    let currentSearchTerm = '';
+    let editingTaskId = null;
+    let taskToDeleteId = null;
+    let localTasksCache = []; // A local cache to make UI faster
+    let periodicCheckInterval = null; // To hold the interval ID
+
+    // --- Auth State Logic ---
+    // --- Settings Logic ---
+    // This function applies settings from localStorage immediately to prevent FOUC.
+    const applySettingsFromCache = () => {
+        const primaryColor = localStorage.getItem('primaryColor');
+        const backgroundImage = localStorage.getItem('backgroundImage');
+        const language = localStorage.getItem('language') || 'ar';
+        if (window.I18N) {
+            I18N.set(language);
+            I18N.applyTasks();
+        }
+        if (primaryColor) {
+            document.documentElement.style.setProperty('--primary-color', primaryColor);
+        }
+        if (backgroundImage) {
+            document.documentElement.style.setProperty('--background-image', `url('${backgroundImage}')`);
+        }
+
+        // Unblock the page view now that styles are applied
+        if (pageBlocker) {
+            pageBlocker.style.opacity = '0';
+            setTimeout(() => pageBlocker.style.display = 'none', 200); // Remove from layout after transition
+        }
+    };
+
+    // This function fetches the definitive settings from Firestore after login.
+    const syncSettingsFromFirestore = async (user) => {
+        if (!user || user.isAnonymous) return; // Only for logged-in users
+        try {
+            const settingsDoc = await db.collection('users').doc(user.uid).get();
+            if (settingsDoc.exists) {
+                const settings = settingsDoc.data().settings || {};
+                // Update localStorage and apply settings from the source of truth (Firestore)
+                if (settings.primaryColor) localStorage.setItem('primaryColor', settings.primaryColor);
+                if (settings.backgroundImage) localStorage.setItem('backgroundImage', settings.backgroundImage);
+                if (settings.language) localStorage.setItem('language', settings.language);
+                applySettingsFromCache(); // Re-apply with fresh data
+            }
+        } catch (error) {
+            console.error("Error fetching settings from Firestore:", error);
+        }
+    };
+
+    const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%230078d4'/><stop offset='100%' stop-color='%23205a9d'/></linearGradient></defs><rect width='120' height='120' rx='60' fill='url(%23g)'/><circle cx='60' cy='52' r='22' fill='white' fill-opacity='0.85'/><path d='M30 100c4-20 24-24 30-24s26 4 30 24' fill='white' fill-opacity='0.85' stroke='none'/></svg>";
+
+    const setAvatar = (el, user, displayNameFallback) => {
+        if (!el) return;
+        const name = user.isAnonymous ? 'زائر' : (user.displayName || displayNameFallback || 'مستخدم');
+        if (user.photoURL) {
+            el.style.backgroundImage = `url('${user.photoURL}')`;
+            el.textContent = '';
+        } else {
+            el.style.backgroundImage = `url("${DEFAULT_AVATAR}")`;
+            el.textContent = '';
+        }
+    };
+
+    const applyUserProfile = (user) => {
+        const displayName = user.isAnonymous ? "زائر" : (user.displayName || user.email.split('@')[0]);
+        if (accountMenuBtn) {
+            accountMenuBtn.querySelector('.link-text').textContent = displayName;
+        }
+        if (userNameEl) {
+            userNameEl.textContent = displayName;
+        }
+        setAvatar(userAvatarEl, user, displayName);
+        if (greetingTextEl) {
+            const lang = window.I18N ? I18N.get() : 'ar';
+            const prefix = lang === 'ar' ? 'مرحباً، ' : 'Hi, ';
+            greetingTextEl.textContent = `${prefix}${displayName}`;
+        }
+    };
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            // User is signed in.
+            applyUserProfile(user);
+
+            // Define the collection path for this user's tasks
+            tasksCollection = db.collection('users').doc(user.uid).collection('tasks');
+            // Start the app by fetching tasks
+            autoDeleteOldTasks(); // Run the auto-delete check on startup
+            renderTasks();
+            applyViewPreference(); // Apply saved view
+            syncSettingsFromFirestore(user); // Sync settings from Firestore
+            initializeSidebar(); // Setup sidebar state
+            // Start the periodic check for due dates
+            if (periodicCheckInterval) clearInterval(periodicCheckInterval); // Clear any existing interval
+            periodicCheckInterval = setInterval(periodicCheck, 60000); // Check every 60 seconds
+        } else {
+            // User is signed out.
+            // Redirect to login page
+            window.location.href = 'login.html';
+        }
+    });
+
+    logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Clear all user-specific settings from localStorage upon logout
+        localStorage.removeItem('primaryColor');
+        localStorage.removeItem('backgroundImage');
+        localStorage.removeItem('taskView');
+        localStorage.removeItem('sidebarCollapsed');
+        // Stop the periodic check on logout
+        if (periodicCheckInterval) clearInterval(periodicCheckInterval);
+
+        auth.signOut();
+    });
+
+    // --- Account Menu Logic ---
+    accountMenuBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        accountMenu.classList.toggle('hidden');
+    });
+    // Hide menu if clicked outside
+    document.addEventListener('click', (e) => {
+        if (!accountMenuBtn.contains(e.target) && !accountMenu.contains(e.target)) {
+            accountMenu.classList.add('hidden');
+        }
+    });
+    // --- Modal Logic ---
+    const openAddModal = () => {
+        editingTaskId = null;
+        taskForm.reset();
+        modalTitle.textContent = 'إضافة مهمة جديدة';
+        modalSubmitBtn.textContent = 'إضافة المهمة';
+        modal.classList.remove('hidden');
+        document.getElementById('task-title').focus();
+    };
+
+    const closeModal = () => {
+        modal.classList.add('hidden');
+        editingTaskId = null;
+    };
+
+    addTaskBtn.addEventListener('click', openAddModal);
+    closeModalBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+
+    // --- Sidebar Toggle Logic ---
+    const initializeSidebar = () => {
+        const toggleBtn = document.getElementById('sidebar-toggle-btn');
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const isMobile = window.innerWidth <= 768;
+
+        // Load saved sidebar state (only for desktop)
+        if (!isMobile && localStorage.getItem('sidebarCollapsed') === 'true') {
+            sidebar.classList.add('sidebar-collapsed');
+        }
+
+        // Function to open sidebar (mobile)
+        const openSidebar = () => {
+            sidebar.classList.add('sidebar-open');
+            sidebarOverlay.classList.add('active');
+            document.body.classList.add('sidebar-open');
+        };
+
+        // Function to close sidebar (mobile)
+        const closeSidebar = () => {
+            sidebar.classList.remove('sidebar-open');
+            sidebarOverlay.classList.remove('active');
+            document.body.classList.remove('sidebar-open');
+        };
+
+        // Desktop toggle (collapse/expand)
+        toggleBtn.addEventListener('click', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.toggle('sidebar-collapsed');
+                if (sidebar.classList.contains('sidebar-collapsed')) {
+                    localStorage.setItem('sidebarCollapsed', 'true');
+                } else {
+                    localStorage.setItem('sidebarCollapsed', 'false');
+                }
+            } else {
+                // On mobile, toggle button closes the sidebar
+                closeSidebar();
+            }
+        });
+
+        // Mobile menu button
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                if (sidebar.classList.contains('sidebar-open')) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            });
+        }
+
+        // Close sidebar when clicking overlay
+        if (sidebarOverlay) {
+            sidebarOverlay.addEventListener('click', closeSidebar);
+        }
+
+        // Close sidebar when clicking on a link (mobile)
+        if (isMobile) {
+            const sidebarLinks = sidebar.querySelectorAll('nav a');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    setTimeout(closeSidebar, 300); // Small delay for better UX
+                });
+            });
+        }
+
+        // Handle window resize
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (window.innerWidth > 768) {
+                    // Desktop: remove mobile classes
+                    sidebar.classList.remove('sidebar-open');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.classList.remove('sidebar-open');
+                    // Restore collapsed state if saved
+                    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+                        sidebar.classList.add('sidebar-collapsed');
+                    }
+                } else {
+                    // Mobile: ensure sidebar is closed by default
+                    sidebar.classList.remove('sidebar-open', 'sidebar-collapsed');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.classList.remove('sidebar-open');
+                }
+            }, 250);
+        });
+    };
+
+
+
+    // --- Import/Export Modal Logic ---
+    importBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        importModal.classList.remove('hidden');
+        accountMenu.classList.add('hidden'); // Hide account menu
+    });
+    importModal.querySelector('.close-modal-btn').addEventListener('click', () => importModal.classList.add('hidden'));
+    importModal.addEventListener('click', (e) => {
+        if (e.target === importModal) {
+            importModal.classList.add('hidden');
+        }
+    });
+
+    // --- Confirm Delete Modal Logic ---
+    const openConfirmDeleteModal = (id) => {
+        taskToDeleteId = id;
+        confirmDeleteModal.classList.remove('hidden');
+    };
+    const closeConfirmDeleteModal = () => {
+        taskToDeleteId = null;
+        confirmDeleteModal.classList.add('hidden');
+    };
+    cancelDeleteBtn.addEventListener('click', closeConfirmDeleteModal);
+    confirmDeleteBtn.addEventListener('click', () => {
+        softDeleteTask(taskToDeleteId);
+        closeConfirmDeleteModal();
+    });
+
+    // --- Data Handling ---
+    const fetchTasksFromFirestore = async () => {
+        if (!tasksCollection) return [];
+        try {
+            const snapshot = await tasksCollection.get();
+            localTasksCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            return localTasksCache;
+        } catch (error) {
+            console.error("Error fetching tasks: ", error);
+            return [];
+        }
+    };
+
+    const autoDeleteOldTasks = async () => {
+        if (!tasksCollection) return;
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        // Create a Firestore timestamp from the date
+        const threshold = firebase.firestore.Timestamp.fromDate(thirtyDaysAgo);
+
+        // Query for tasks that were soft-deleted more than 30 days ago
+        const query = tasksCollection.where('isDeleted', '==', true).where('deletedAt', '<=', threshold);
+
+        const snapshot = await query.get();
+        if (snapshot.empty) return; // No old tasks to delete
+
+        // Use a batch to delete all found documents efficiently
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+    };
+    // --- Rendering ---
+    const renderTasks = async (isFiltering = false) => {
+        const allTasks = await fetchTasksFromFirestore();
+
+        checkForDueDates(allTasks); // Check and display alerts
+
+        // Calculate counts for *active* categories
+        const activeTasks = allTasks.filter(task => !task.completed && !task.isDeleted);
+        const allCount = activeTasks.length;
+        const urgentCount = activeTasks.filter(task => task.priority === 'urgent').length;
+        const importantCount = activeTasks.filter(task => task.priority === 'important').length;
+        const normalCount = activeTasks.filter(task => task.priority === 'normal').length;
+
+        // Update counts in sidebar
+        if (document.getElementById('count-all')) document.getElementById('count-all').textContent = `(${allCount})`;
+        if (document.getElementById('count-urgent')) document.getElementById('count-urgent').textContent = `(${urgentCount})`;
+        if (document.getElementById('count-important')) document.getElementById('count-important').textContent = `(${importantCount})`;
+        if (document.getElementById('count-normal')) document.getElementById('count-normal').textContent = `(${normalCount})`;
+
+
+        // 1. Search
+        let processedTasks = allTasks;
+        if (currentSearchTerm) {
+            const searchTerm = currentSearchTerm.toLowerCase().trim();
+            if (searchTerm.startsWith('أولوية:')) {
+                const priority = searchTerm.substring(7).trim(); // Get text after "أولوية:"
+                const priorityMap = { 'عاجلة': 'urgent', 'مهمة': 'important', 'عادية': 'normal' };
+                const searchPriority = priorityMap[priority];
+                if (searchPriority) {
+                    processedTasks = processedTasks.filter(task => task.priority === searchPriority);
+                }
+            } else if (searchTerm.startsWith('تاريخ:')) {
+                const dateStr = searchTerm.substring(6).trim(); // Get text after "تاريخ:"
+                // This will find tasks that fall on that specific date
+                processedTasks = processedTasks.filter(task => {
+                    if (!task.dueDate) return false;
+                    // Compare only the date part, ignoring time
+                    const taskDate = task.dueDate.substring(0, 10);
+                    return taskDate === dateStr;
+                });
+            } else {
+                // Default text search
+                processedTasks = processedTasks.filter(task =>
+                    task.title.toLowerCase().includes(searchTerm) ||
+                    task.description.toLowerCase().includes(searchTerm)
+                );
+            }
+        }
+
+        // 2. Filter
+        if (currentFilter === 'deleted') { // If we are in the deleted view
+            processedTasks = processedTasks.filter(task => task.isDeleted);
+        } else { // For all other views ('all', 'urgent', etc.)
+            // First, always exclude deleted tasks
+            processedTasks = processedTasks.filter(task => !task.isDeleted);
+
+            // Then, if a specific category is selected, apply that filter
+            if (currentFilter !== 'all') {
+                processedTasks = processedTasks.filter(task => task.priority === currentFilter);
+            }
+        }
+
+        // 3. Sort
+        const priorityOrder = { 'urgent': 1, 'important': 2, 'normal': 3 };
+        processedTasks.sort((a, b) => {
+            // Completed tasks always go to the bottom
+            if (a.completed !== b.completed) {
+                return a.completed ? 1 : -1;
+            }
+            // Sort by selected criteria for active tasks
+            if (currentSort === 'priority') {
+                return (priorityOrder[a.priority] || 99) - (priorityOrder[b.priority] || 99);
+            }
+            if (currentSort === 'creation') {
+                // Newest first
+                return (b.createdAt || 0) - (a.createdAt || 0);
+            }
+            // Default sort by due date
+            const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+            const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+            return dateA - dateB;
+        });
+
+        // 4. Render
+        const renderLogic = () => {
+            tasksList.innerHTML = ''; // Clear the list
+            if (processedTasks.length === 0) {
+                // If in deleted view and it's empty, still show the info message.
+                if (currentFilter === 'deleted') {
+                    const deletedInfoMessage = `<p class="deleted-info-message">سيتم حذف المهام نهائياً بعد 30 يوماً من وجودها في سلة المحذوفات.</p>`;
+                    tasksList.innerHTML = deletedInfoMessage;
+                }
+                const emptyMessage = getEmptyStateMessage(allTasks.length, currentFilter, currentSearchTerm);
+                tasksList.innerHTML += `<p class="empty-state-message">${emptyMessage}</p>`;
+                return;
+            }
+
+            processedTasks.forEach(task => {
+                const taskCard = createTaskCard(task);
+                tasksList.appendChild(taskCard);
+
+                // Apply animation for newly added or filtered-in tasks
+                if (task.id === window.newlyAddedTaskId) {
+                    taskCard.classList.add('newly-added');
+                    delete window.newlyAddedTaskId; // Clean up
+                } else if (isFiltering) {
+                    taskCard.classList.add('is-filtering-in');
+                }
+            });
+        };
+
+        if (isFiltering) {
+            // Animate out old tasks
+            const cards = tasksList.querySelectorAll('.task-card');
+            if (cards.length > 0) {
+                cards.forEach(card => card.classList.add('is-filtering-out'));
+                // Wait for animation to finish before rendering new tasks
+                setTimeout(renderLogic, 300);
+            } else {
+                // If there are no cards, just render immediately
+                renderLogic();
+            }
+        } else {
+            // If not filtering (e.g., initial load, adding task), render immediately
+            renderLogic();
+        }
+
+
+
+
+        if (currentFilter === 'deleted' && processedTasks.length > 0) {
+            const deletedInfoMessage = `<p class="deleted-info-message">سيتم حذف المهام نهائياً بعد 30 يوماً من وجودها في سلة المحذوفات.</p>`;
+            tasksList.insertAdjacentHTML('afterbegin', deletedInfoMessage);
+        }
+    };
+
+    const getEmptyStateMessage = (totalTasksCount, filter, searchTerm) => {
+        if (searchTerm) {
+            return 'هممم، لا توجد مهام بهذا الاسم. هل جربت كلمة بحث أخرى؟';
+        }
+        if (filter === 'deleted') {
+            return 'سلة المحذوفات فارغة. عمل نظيف!';
+        }
+        if (filter === 'all' && totalTasksCount === 0) {
+            return 'لا توجد مهام بعد. هيا أضف مهمتك الأولى من الزر أدناه!';
+        }
+        if (filter !== 'all') {
+            return 'رائع! لا توجد مهام في هذا القسم حالياً.';
+        }
+        return 'يبدو أن هذا القسم فارغ. ربما تجرب فلترًا آخر؟';
+    };
+
+    const checkForDueDates = (tasks) => {
+        alertsContainer.innerHTML = '';
+
+        // If we are in the deleted view, don't show any alerts.
+        if (currentFilter === 'deleted') {
+            return;
+        }
+
+        const now = new Date();
+        const upcomingLimit = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+        const alerts = [];
+
+        // Sort alerts to show overdue ones first
+        const sortedTasks = tasks.sort((a, b) => (new Date(a.dueDate) > new Date(b.dueDate) ? 1 : -1));
+
+        sortedTasks.forEach(task => {
+            if (task.dueDate && !task.completed && !task.isDeleted) {
+                const dueDate = new Date(task.dueDate);
+                if (dueDate < now) {
+                    alerts.push({ type: 'overdue', message: `فات موعد استحقاق مهمة: <strong>${escapeHTML(task.title)}</strong>.` });
+                } else if (dueDate < upcomingLimit) {
+                    alerts.push({ type: 'due-soon', message: `مهمة <strong>${escapeHTML(task.title)}</strong> مستحقة خلال 24 ساعة.` });
+                }
+            }
+        });
+
+        if (alerts.length > 0) {
+            alerts.forEach(alertInfo => {
+                const alertHTML = `
+                    <div class="alert alert-${alertInfo.type}">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="alert-icon"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"></path></svg>
+                        <span>${alertInfo.message}</span>
+                    </div>`;
+                alertsContainer.innerHTML += alertHTML;
+            });
+        }
+    };
+
+    const createTaskCard = (task) => {
+        const taskCard = document.createElement('div');
+        taskCard.className = `task-card ${task.priority} ${task.completed ? 'completed' : ''} ${task.isDeleted ? 'deleted-task' : ''}`;
+        taskCard.dataset.id = task.id;
+
+        const formattedDate = task.dueDate
+            ? new Date(task.dueDate).toLocaleString('ar-EG', { // Using ar-EG for better Gregorian support
+                year: 'numeric', month: 'long', day: 'numeric',
+                ...(task.dueDate.includes('T') && { hour: 'numeric', minute: 'numeric', hour12: true }) // Add time only if it exists
+            })
+            : 'بدون تاريخ استحقاق';
+
+        // Due date status for styling
+        let dueDateStatus = '';
+        if (task.dueDate && !task.completed && !task.isDeleted) { // Check if task is active before showing due date alerts
+            const dueDate = new Date(task.dueDate);
+            const now = new Date();
+            const upcomingLimit = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+            if (dueDate < now) {
+                dueDateStatus = 'overdue';
+            } else if (dueDate < upcomingLimit) {
+                dueDateStatus = 'due-soon';
+            }
+        }
+
+        let deleteTimerHTML = '';
+        if (task.isDeleted && task.deletedAt) {
+            const deletedDate = task.deletedAt.toDate(); // Convert Firestore Timestamp to JS Date
+            const expiryDate = new Date(deletedDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+            const daysLeft = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+            deleteTimerHTML = `<span class="delete-timer">سيتم الحذف النهائي خلال ${daysLeft > 0 ? daysLeft : 0} يوم</span>`;
+        }
+
+        const actionsHTML = task.isDeleted
+            ? `
+            <button class="action-btn restore-btn" title="استعادة المهمة">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8H12z"></path></svg>
+            </button>
+            <button class="action-btn delete-btn" title="حذف نهائي">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>
+            </button>
+        `
+            : `
+            <button class="action-btn edit-btn" title="تعديل المهمة">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path></svg>
+            </button>
+            <button class="action-btn delete-btn" title="حذف المهمة">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"></path></svg>
+            </button>
+        `;
+
+        taskCard.innerHTML = `
+        <div class="task-header">
+            ${!task.isDeleted ? '<button class="complete-btn-circle" title="إكمال المهمة"></button>' : ''}
+            <div class="task-title-container">
+                <span class="priority-dot"></span>
+                <h3>${escapeHTML(task.title)}</h3>
+            </div>
+            <div class="task-actions">${actionsHTML}</div>
+        </div>
+        <p>${escapeHTML(task.description)}</p>
+        <div class="task-meta">
+            ${task.dueDate && !task.isDeleted ? `
+                <div class="due-date-badge ${dueDateStatus}">
+                    <svg class="meta-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"></path></svg>
+                    <span>${formattedDate}</span>
+                </div>
+            ` : ''}
+            ${deleteTimerHTML}
+        </div>
+    `;
+
+        // --- Add Event Listeners to card buttons ---
+        if (task.isDeleted) {
+            taskCard.querySelector('.restore-btn').addEventListener('click', () => restoreTask(task.id));
+            taskCard.querySelector('.delete-btn').addEventListener('click', () => {
+                if (confirm(`هل أنت متأكد من الحذف النهائي لمهمة: "${task.title}"؟ لا يمكن التراجع عن هذا الإجراء.`)) {
+                    deleteTaskPermanently(task.id);
+                }
+            });
+        } else {
+            taskCard.querySelector('.complete-btn-circle').addEventListener('click', () => {
+                toggleTaskComplete(task.id);
+            });
+
+            taskCard.querySelector('.edit-btn').addEventListener('click', () => {
+                openEditModal(task.id);
+            });
+
+            taskCard.querySelector('.delete-btn').addEventListener('click', () => {
+                // Open the custom confirmation modal instead of the browser's confirm
+                openConfirmDeleteModal(task.id);
+            });
+        }
+
+        return taskCard;
+    };
+
+    // This function runs in the background to update due date statuses without a full re-render
+    const periodicCheck = () => {
+        if (!localTasksCache || localTasksCache.length === 0 || currentFilter === 'deleted') return;
+
+        // 1. Update the top alerts
+        checkForDueDates(localTasksCache);
+
+        // 2. Update individual card badges
+        const now = new Date();
+        const upcomingLimit = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+        document.querySelectorAll('.task-card:not(.completed):not(.deleted-task)').forEach(card => {
+            const taskId = card.dataset.id;
+            const task = localTasksCache.find(t => t.id === taskId);
+            if (!task || !task.dueDate) return;
+
+            const dueDate = new Date(task.dueDate);
+            const badge = card.querySelector('.due-date-badge');
+            if (!badge) return;
+
+            // Remove old statuses and apply the new one
+            badge.classList.remove('overdue', 'due-soon');
+            if (dueDate < now) badge.classList.add('overdue');
+            else if (dueDate < upcomingLimit) badge.classList.add('due-soon');
+        });
+    };
+
+    // --- Actions ---
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+
+        const titleInput = document.getElementById('task-title');
+        const dateInput = document.getElementById('task-due-date').value;
+        const timeInput = document.getElementById('task-due-time').value;
+        const title = titleInput.value.trim();
+
+        if (title === '') {
+            alert('حقل العنوان مطلوب.');
+            return;
+        }
+
+        // Combine date and time. If only date is provided, it will be saved as is.
+        // If both are provided, they are combined into a full datetime string.
+        const combinedDueDate = dateInput && timeInput
+            ? `${dateInput}T${timeInput}`
+            : dateInput;
+
+        try {
+            if (editingTaskId) {
+                // --- Edit existing task ---
+                const taskRef = tasksCollection.doc(editingTaskId);
+                await taskRef.update({
+                    title,
+                    description: document.getElementById('task-desc').value.trim(),
+                    dueDate: combinedDueDate,
+                    priority: document.getElementById('task-priority').value,
+                });
+                window.newlyAddedTaskId = editingTaskId; // Re-use for animation
+
+            } else {
+                // --- Add new task ---
+                const newTask = {
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(), // Use server time
+                    title,
+                    description: document.getElementById('task-desc').value.trim(),
+                    dueDate: combinedDueDate,
+                    priority: document.getElementById('task-priority').value,
+                    completed: false,
+                    isDeleted: false
+                };
+                const docRef = await tasksCollection.add(newTask);
+                window.newlyAddedTaskId = docRef.id; // Flag for animation
+            }
+
+            renderTasks();
+            taskForm.reset();
+            closeModal();
+        } catch (error) {
+            console.error("Error saving task: ", error);
+            alert("حدث خطأ أثناء حفظ المهمة.");
+        }
+    };
+
+    const softDeleteTask = async (id) => {
+        if (!tasksCollection) return;
+        await tasksCollection.doc(id).update({ isDeleted: true, deletedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        renderTasks();
+    };
+
+    const restoreTask = async (id) => {
+        if (!tasksCollection) return;
+        await tasksCollection.doc(id).update({ isDeleted: false, deletedAt: null }); // Remove deletion date
+        renderTasks();
+    };
+
+    const deleteTaskPermanently = async (id) => {
+        if (!tasksCollection) return;
+        await tasksCollection.doc(id).delete();
+        renderTasks();
+    };
+
+    const toggleTaskComplete = async (id) => {
+        if (!tasksCollection) return;
+        const taskRef = tasksCollection.doc(id);
+        const taskDoc = await taskRef.get();
+        const currentStatus = taskDoc.data().completed;
+        const newStatus = !currentStatus;
+
+        await taskRef.update({ completed: newStatus });
+
+        // Instead of re-rendering everything, just update the specific card
+        const cardToUpdate = tasksList.querySelector(`[data-id='${id}']`);
+        if (cardToUpdate) {
+            // This allows the CSS transition for the line-through to work.
+            cardToUpdate.classList.toggle('completed', newStatus);
+
+            // After a delay, re-render the whole list to move the task to the bottom.
+            setTimeout(() => {
+                renderTasks();
+            }, 1000); // 1 second delay
+        }
+    };
+
+    const openEditModal = (id) => {
+        // Find the task in the local cache to make it fast
+        const taskToEdit = localTasksCache.find(task => task.id === id);
+        if (!taskToEdit) return;
+
+        editingTaskId = id;
+        modalTitle.textContent = 'تعديل المهمة';
+        modalSubmitBtn.textContent = 'حفظ التعديلات';
+        document.getElementById('task-title').value = taskToEdit.title;
+        document.getElementById('task-desc').value = taskToEdit.description;
+
+        // Split the stored dueDate back into date and time parts for the form
+        if (taskToEdit.dueDate && taskToEdit.dueDate.includes('T')) {
+            const [datePart, timePart] = taskToEdit.dueDate.split('T');
+            document.getElementById('task-due-date').value = datePart;
+            document.getElementById('task-due-time').value = timePart;
+        } else {
+            document.getElementById('task-due-date').value = taskToEdit.dueDate || '';
+        }
+
+        document.getElementById('task-priority').value = taskToEdit.priority;
+        modal.classList.remove('hidden');
+    };
+
+    // --- Filtering and Sorting ---
+    document.getElementById('sidebar').addEventListener('click', (e) => {
+        const targetLink = e.target.closest('a.filter-btn');
+
+        if (targetLink) {
+            // Prevent default link behavior only for filter buttons
+            e.preventDefault();
+            // Remove 'active' class from any currently active filter button in the entire sidebar
+            document.querySelector('#sidebar a.filter-btn.active')?.classList.remove('active');
+
+            // Add 'active' class to the clicked button
+            targetLink.classList.add('active');
+
+            // Update the state and re-render the tasks
+            currentFilter = targetLink.dataset.filter;
+            renderTasks(true); // Pass true to indicate filtering
+        }
+    });
+
+    sortButtons.addEventListener('click', (e) => {
+        const targetButton = e.target.closest('button.sort-btn');
+        if (targetButton) {
+            // Update active class
+            const currentActive = sortButtons.querySelector('.active');
+            if (currentActive) {
+                currentActive.classList.remove('active');
+            }
+            e.target.classList.add('active');
+            // Update state and re-render
+            currentSort = e.target.dataset.sort;
+            renderTasks(true); // Pass true to indicate filtering
+        }
+    });
+
+    // Search listener
+    searchInput.addEventListener('input', (e) => {
+        currentSearchTerm = e.target.value;
+        renderTasks(true); // Pass true to indicate filtering
+    });
+
+    // --- View Toggler ---
+    const applyViewPreference = () => {
+        // Remove active class from all view buttons
+        viewOptions.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+        // Add active class to the correct button
+        viewOptions.querySelector(`[data-view="${currentView}"]`).classList.add('active');
+
+        // Apply class to the tasks list container
+        if (currentView === 'grid') {
+            tasksList.classList.add('grid-view');
+        } else {
+            tasksList.classList.remove('grid-view');
+        }
+    };
+
+    viewOptions.addEventListener('click', (e) => {
+        const targetButton = e.target.closest('button.view-btn');
+        if (targetButton && targetButton.dataset.view !== currentView) {
+            currentView = targetButton.dataset.view;
+            localStorage.setItem('taskView', currentView); // Save preference
+            applyViewPreference();
+        }
+    });
+
+    // --- Export and Import Logic ---
+    const convertToCSV = (tasks) => {
+        const headers = ['title', 'description', 'dueDate', 'priority', 'completed'];
+        const rows = tasks.map(task => {
+            // Sanitize data for CSV: wrap in quotes and escape existing quotes
+            const escape = (str) => `"${String(str || '').replace(/"/g, '""')}"`;
+            return [
+                escape(task.title),
+                escape(task.description),
+                escape(task.dueDate),
+                escape(task.priority),
+                escape(task.completed)
+            ].join(',');
+        });
+        return [headers.join(','), ...rows].join('\r\n');
+    };
+
+    exportBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // We use the local cache which is already filtered for non-deleted tasks
+        const tasksToExport = localTasksCache.filter(task => !task.isDeleted);
+        if (tasksToExport.length === 0) {
+            alert('لا توجد مهام لتصديرها.');
+            return;
+        }
+        const csvContent = convertToCSV(tasksToExport);
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'tasks.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        accountMenu.classList.add('hidden');
+    });
+
+    importForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const file = csvFileInput.files[0];
+        if (!file) {
+            importStatus.textContent = 'الرجاء اختيار ملف أولاً.';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            const csv = event.target.result;
+            const lines = csv.split(/\r\n|\n/);
+            const headers = lines[0].split(',').map(h => h.trim());
+            const tasksToImport = [];
+
+            // Basic validation for headers
+            const expectedHeaders = ['title', 'description', 'dueDate', 'priority', 'completed'];
+            if (!expectedHeaders.every(h => headers.includes(h))) {
+                importStatus.textContent = 'خطأ: الملف غير متوافق. تأكد من أن الأعمدة صحيحة.';
+                importStatus.style.color = 'red';
+                return;
+            }
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i]) continue;
+                // A simple regex to handle quoted commas
+                const values = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                const taskData = {};
+                for (let j = 0; j < headers.length; j++) {
+                    let value = (values[j] || '').trim();
+                    // Remove quotes if present
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.slice(1, -1).replace(/""/g, '"');
+                    }
+                    // Convert 'true'/'false' strings to boolean
+                    if (headers[j] === 'completed') {
+                        value = value.toLowerCase() === 'true';
+                    }
+                    taskData[headers[j]] = value;
+                }
+
+                if (taskData.title) { // Only import if there's a title
+                    tasksToImport.push({
+                        title: taskData.title,
+                        description: taskData.description || '',
+                        dueDate: taskData.dueDate || '',
+                        priority: taskData.priority || 'normal',
+                        completed: taskData.completed || false,
+                        isDeleted: false,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    });
+                }
+            }
+
+            if (tasksToImport.length > 0) {
+                importStatus.textContent = `جاري استيراد ${tasksToImport.length} مهمة...`;
+                importStatus.style.color = 'blue';
+                const batch = db.batch();
+                tasksToImport.forEach(task => {
+                    const docRef = tasksCollection.doc(); // Automatically generate unique ID
+                    batch.set(docRef, task);
+                });
+                await batch.commit();
+                importStatus.textContent = `تم استيراد ${tasksToImport.length} مهمة بنجاح!`;
+                importStatus.style.color = 'green';
+                await renderTasks(); // Refresh the list
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    // --- Utility ---
+    const escapeHTML = (str) => {
+        const p = document.createElement('p');
+        p.appendChild(document.createTextNode(str));
+        return p.innerHTML;
+    };
+
+    // --- Initial Load ---
+    taskForm.addEventListener('submit', handleFormSubmit);
+    applySettingsFromCache(); // Apply cached settings immediately on load to prevent flash
+    // The rest of the app initialization is handled by the onAuthStateChanged listener
+});
