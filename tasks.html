@@ -83,6 +83,11 @@
                             <span class="link-text">عادية <span id="count-normal" class="task-count">(0)</span></span>
                         </a></li>
                 </ul>
+                <!-- Tags Filter Section -->
+                <h2>الوسوم</h2>
+                <ul id="tags-filters">
+                    <!-- Tags will be dynamically added here -->
+                </ul>
             </nav>
             <nav class="sidebar-footer">
                 <ul>
@@ -182,6 +187,20 @@
                     <option value="important">مهمة</option>
                     <option value="urgent">عاجلة</option>
                 </select>
+
+                <!-- Tags Input -->
+                <label for="task-tags">الوسوم (افصل بينها بفاصلة)</label>
+                <input type="text" id="task-tags" placeholder="مثال: عمل, دراسة, مشروع...">
+
+                <!-- Subtasks Section -->
+                <label>المهام الفرعية</label>
+                <div class="subtasks-input-container">
+                    <input type="text" id="new-subtask-input" placeholder="أضف مهمة فرعية...">
+                    <button type="button" id="add-subtask-btn" class="btn btn-secondary" style="width: auto;">+</button>
+                </div>
+                <ul id="subtasks-list-preview">
+                    <!-- Subtasks preview will go here -->
+                </ul>
                 <button type="submit" id="modal-submit-btn" class="btn">إضافة المهمة</button>
             </form>
         </div>
