@@ -178,9 +178,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     // --- Modal Logic ---
+    let currentSubtasks = []; // Temporary storage for subtasks in the modal
+
+    // --- Modal Logic ---
     const openAddModal = () => {
         editingTaskId = null;
         taskForm.reset();
+        currentSubtasks = []; // Reset subtasks
+        renderSubtasksPreview();
         modalTitle.textContent = 'إضافة مهمة جديدة';
         modalSubmitBtn.textContent = 'إضافة المهمة';
         modal.classList.remove('hidden');
@@ -190,6 +195,51 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeModal = () => {
         modal.classList.add('hidden');
         editingTaskId = null;
+        currentSubtasks = [];
+    };
+
+    // Subtask UI Logic in Modal
+    const addSubtaskBtn = document.getElementById('add-subtask-btn');
+    const newSubtaskInput = document.getElementById('new-subtask-input');
+    const subtasksListPreview = document.getElementById('subtasks-list-preview');
+
+    addSubtaskBtn.addEventListener('click', () => {
+        const title = newSubtaskInput.value.trim();
+        if (title) {
+            currentSubtasks.push({ title, completed: false });
+            newSubtaskInput.value = '';
+            renderSubtasksPreview();
+            newSubtaskInput.focus();
+        }
+    });
+
+    // Allow adding subtasks with Enter key
+    newSubtaskInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent form submission
+            addSubtaskBtn.click();
+        }
+    });
+
+    const renderSubtasksPreview = () => {
+        subtasksListPreview.innerHTML = '';
+        currentSubtasks.forEach((subtask, index) => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span>${subtask.title}</span>
+                <button type="button" class="remove-subtask-btn" data-index="${index}">×</button>
+            `;
+            subtasksListPreview.appendChild(li);
+        });
+
+        // Add event listeners for removal
+        subtasksListPreview.querySelectorAll('.remove-subtask-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                currentSubtasks.splice(index, 1);
+                renderSubtasksPreview();
+            });
+        });
     };
 
     addTaskBtn.addEventListener('click', openAddModal);
@@ -291,21 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-
-
-    // --- Import/Export Modal Logic ---
-    importBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        importModal.classList.remove('hidden');
-        accountMenu.classList.add('hidden'); // Hide account menu
-    });
-    importModal.querySelector('.close-modal-btn').addEventListener('click', () => importModal.classList.add('hidden'));
-    importModal.addEventListener('click', (e) => {
-        if (e.target === importModal) {
-            importModal.classList.add('hidden');
-        }
-    });
-
     // --- Confirm Delete Modal Logic ---
     const openConfirmDeleteModal = (id) => {
         taskToDeleteId = id;
@@ -353,6 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
         snapshot.docs.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
     };
+
     // --- Rendering ---
     const renderTasks = async (isFiltering = false) => {
         const allTasks = await fetchTasksFromFirestore();
@@ -371,7 +407,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.getElementById('count-urgent')) document.getElementById('count-urgent').textContent = `(${urgentCount})`;
         if (document.getElementById('count-important')) document.getElementById('count-important').textContent = `(${importantCount})`;
         if (document.getElementById('count-normal')) document.getElementById('count-normal').textContent = `(${normalCount})`;
-
 
         // 1. Search
         let processedTasks = allTasks;
@@ -411,8 +446,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Then, if a specific category is selected, apply that filter
             if (currentFilter !== 'all') {
-                processedTasks = processedTasks.filter(task => task.priority === currentFilter);
+                if (currentFilter.startsWith('tag:')) {
+                    // Tag Filter
+                    const targetTag = currentFilter.substring(4);
+                    processedTasks = processedTasks.filter(task => task.tags && task.tags.includes(targetTag));
+                } else {
+                    // Priority Filter
+                    processedTasks = processedTasks.filter(task => task.priority === currentFilter);
+                }
             }
+        }
+
+        // --- Populate Sidebar Tags ---
+        const tagsFiltersContainer = document.getElementById('tags-filters');
+        if (tagsFiltersContainer) {
+            // Collect unique tags from *active* tasks
+            const uniqueTags = new Set();
+            activeTasks.forEach(task => {
+                if (task.tags) task.tags.forEach(tag => uniqueTags.add(tag));
+            });
+
+            tagsFiltersContainer.innerHTML = '';
+
+            uniqueTags.forEach(tag => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#';
+                a.className = 'filter-btn';
+                a.dataset.filter = `tag:${tag}`;
+                if (currentFilter === `tag:${tag}`) a.classList.add('active');
+
+                a.innerHTML = `
+                    <span class="tag-color-dot"></span>
+                    <span class="link-text">${escapeHTML(tag)}</span>
+                `;
+
+                li.appendChild(a);
+                tagsFiltersContainer.appendChild(li);
+            });
         }
 
         // 3. Sort
@@ -479,9 +550,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // If not filtering (e.g., initial load, adding task), render immediately
             renderLogic();
         }
-
-
-
 
         if (currentFilter === 'deleted' && processedTasks.length > 0) {
             const deletedInfoMessage = `<p class="deleted-info-message">سيتم حذف المهام نهائياً بعد 30 يوماً من وجودها في سلة المحذوفات.</p>`;
@@ -577,6 +645,37 @@ document.addEventListener('DOMContentLoaded', () => {
             deleteTimerHTML = `<span class="delete-timer">سيتم الحذف النهائي خلال ${daysLeft > 0 ? daysLeft : 0} يوم</span>`;
         }
 
+        // --- Tags HTML ---
+        let tagsHTML = '';
+        if (task.tags && task.tags.length > 0) {
+            tagsHTML = `<div class="task-tags">${task.tags.map(tag => `<span class="tag-chip">${escapeHTML(tag)}</span>`).join('')}</div>`;
+        }
+
+        // --- Subtasks HTML ---
+        let subtasksHTML = '';
+        if (task.subtasks && task.subtasks.length > 0) {
+            subtasksHTML = '<div class="subtasks-container">';
+
+            // Progress Bar
+            const completedCount = task.subtasks.filter(s => s.completed).length;
+            const progressPercent = (completedCount / task.subtasks.length) * 100;
+            if (task.subtasks.length > 0) {
+                subtasksHTML += `
+                 <div class="subtask-progress">
+                    <div class="subtask-progress-bar" style="width: ${progressPercent}%"></div>
+                 </div>`;
+            }
+
+            task.subtasks.forEach((subtask, index) => {
+                subtasksHTML += `
+                    <div class="subtask-item ${subtask.completed ? 'completed' : ''}" data-index="${index}">
+                        ${!task.isDeleted ? `<input type="checkbox" class="subtask-checkbox" ${subtask.completed ? 'checked' : ''}>` : ''}
+                        <span>${escapeHTML(subtask.title)}</span>
+                    </div>`;
+            });
+            subtasksHTML += '</div>';
+        }
+
         const actionsHTML = task.isDeleted
             ? `
             <button class="action-btn restore-btn" title="استعادة المهمة">
@@ -605,6 +704,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="task-actions">${actionsHTML}</div>
         </div>
         <p>${escapeHTML(task.description)}</p>
+        ${tagsHTML}
+        ${subtasksHTML}
         <div class="task-meta">
             ${task.dueDate && !task.isDeleted ? `
                 <div class="due-date-badge ${dueDateStatus}">
@@ -637,12 +738,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Open the custom confirmation modal instead of the browser's confirm
                 openConfirmDeleteModal(task.id);
             });
+
+            // Subtask Checkboxes Listeners
+            taskCard.querySelectorAll('.subtask-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const index = parseInt(e.target.closest('.subtask-item').dataset.index);
+                    toggleSubtaskComplete(task.id, index);
+                });
+            });
         }
 
         return taskCard;
     };
 
-    // This function runs in the background to update due date statuses without a full re-render
     const periodicCheck = () => {
         if (!localTasksCache || localTasksCache.length === 0 || currentFilter === 'deleted') return;
 
@@ -667,62 +775,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (dueDate < now) badge.classList.add('overdue');
             else if (dueDate < upcomingLimit) badge.classList.add('due-soon');
         });
-    };
-
-    // --- Actions ---
-    const handleFormSubmit = async (e) => {
-        e.preventDefault();
-
-        const titleInput = document.getElementById('task-title');
-        const dateInput = document.getElementById('task-due-date').value;
-        const timeInput = document.getElementById('task-due-time').value;
-        const title = titleInput.value.trim();
-
-        if (title === '') {
-            alert('حقل العنوان مطلوب.');
-            return;
-        }
-
-        // Combine date and time. If only date is provided, it will be saved as is.
-        // If both are provided, they are combined into a full datetime string.
-        const combinedDueDate = dateInput && timeInput
-            ? `${dateInput}T${timeInput}`
-            : dateInput;
-
-        try {
-            if (editingTaskId) {
-                // --- Edit existing task ---
-                const taskRef = tasksCollection.doc(editingTaskId);
-                await taskRef.update({
-                    title,
-                    description: document.getElementById('task-desc').value.trim(),
-                    dueDate: combinedDueDate,
-                    priority: document.getElementById('task-priority').value,
-                });
-                window.newlyAddedTaskId = editingTaskId; // Re-use for animation
-
-            } else {
-                // --- Add new task ---
-                const newTask = {
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(), // Use server time
-                    title,
-                    description: document.getElementById('task-desc').value.trim(),
-                    dueDate: combinedDueDate,
-                    priority: document.getElementById('task-priority').value,
-                    completed: false,
-                    isDeleted: false
-                };
-                const docRef = await tasksCollection.add(newTask);
-                window.newlyAddedTaskId = docRef.id; // Flag for animation
-            }
-
-            renderTasks();
-            taskForm.reset();
-            closeModal();
-        } catch (error) {
-            console.error("Error saving task: ", error);
-            alert("حدث خطأ أثناء حفظ المهمة.");
-        }
     };
 
     const softDeleteTask = async (id) => {
@@ -765,8 +817,87 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- Actions ---
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+
+        const titleInput = document.getElementById('task-title');
+        const dateInput = document.getElementById('task-due-date').value;
+        const timeInput = document.getElementById('task-due-time').value;
+        const tagsInput = document.getElementById('task-tags').value; // Get tags
+        const title = titleInput.value.trim();
+
+        if (title === '') {
+            alert('حقل العنوان مطلوب.');
+            return;
+        }
+
+        const combinedDueDate = dateInput && timeInput
+            ? `${dateInput}T${timeInput}`
+            : dateInput;
+
+        // Process Tags
+        const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t !== '');
+
+        try {
+            if (editingTaskId) {
+                // --- Edit existing task ---
+                const taskRef = tasksCollection.doc(editingTaskId);
+                await taskRef.update({
+                    title,
+                    description: document.getElementById('task-desc').value.trim(),
+                    dueDate: combinedDueDate,
+                    priority: document.getElementById('task-priority').value,
+                    tags: tags,
+                    subtasks: currentSubtasks
+                });
+                window.newlyAddedTaskId = editingTaskId;
+
+            } else {
+                // --- Add new task ---
+                const newTask = {
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    title,
+                    description: document.getElementById('task-desc').value.trim(),
+                    dueDate: combinedDueDate,
+                    priority: document.getElementById('task-priority').value,
+                    completed: false,
+                    isDeleted: false,
+                    tags: tags,
+                    subtasks: currentSubtasks
+                };
+                const docRef = await tasksCollection.add(newTask);
+                window.newlyAddedTaskId = docRef.id;
+            }
+
+            renderTasks();
+            taskForm.reset();
+            closeModal();
+        } catch (error) {
+            console.error("Error saving task: ", error);
+            alert("حدث خطأ أثناء حفظ المهمة.");
+        }
+    };
+
+
+
+    const toggleSubtaskComplete = async (taskId, subtaskIndex) => {
+        if (!tasksCollection) return;
+        const taskRef = tasksCollection.doc(taskId);
+        const taskDoc = await taskRef.get();
+        const task = taskDoc.data();
+
+        if (task.subtasks && task.subtasks[subtaskIndex]) {
+            task.subtasks[subtaskIndex].completed = !task.subtasks[subtaskIndex].completed;
+            await taskRef.update({ subtasks: task.subtasks });
+
+            // Update specific UI without full re-render
+            // We'll leave full re-render for now for simplicity or partial update
+            renderTasks();
+        }
+    };
+
     const openEditModal = (id) => {
-        // Find the task in the local cache to make it fast
         const taskToEdit = localTasksCache.find(task => task.id === id);
         if (!taskToEdit) return;
 
@@ -776,7 +907,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('task-title').value = taskToEdit.title;
         document.getElementById('task-desc').value = taskToEdit.description;
 
-        // Split the stored dueDate back into date and time parts for the form
         if (taskToEdit.dueDate && taskToEdit.dueDate.includes('T')) {
             const [datePart, timePart] = taskToEdit.dueDate.split('T');
             document.getElementById('task-due-date').value = datePart;
@@ -786,6 +916,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         document.getElementById('task-priority').value = taskToEdit.priority;
+
+        // Populate Tags
+        document.getElementById('task-tags').value = taskToEdit.tags ? taskToEdit.tags.join(', ') : '';
+
+        // Populate Subtasks
+        currentSubtasks = taskToEdit.subtasks ? [...taskToEdit.subtasks] : [];
+        renderSubtasksPreview();
+
         modal.classList.remove('hidden');
     };
 
