@@ -1,0 +1,98 @@
+.alarm-sound-select-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.alarm-sound-select-wrapper .alarm-select {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1em;
+    font-weight: 500;
+    background-color: white;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 12px center;
+    padding-left: 40px;
+}
+
+.alarm-sound-select-wrapper .alarm-select:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 120, 212, 0.1);
+}
+
+.alarm-sound-select-wrapper .alarm-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+}
+
+.preview-alarm-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid #e0e0e0;
+    background: white;
+    color: var(--primary-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.preview-alarm-btn:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3);
+}
+
+.preview-alarm-btn:active {
+    transform: scale(0.95);
+}
+
+.preview-alarm-btn svg {
+    display: block;
+}
+
+.language-select-wrapper {
+    margin-bottom: 10px;
+}
+
+.language-select-wrapper select {
+    width: 100%;
+    padding: 12px 40px 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1em;
+    font-weight: 500;
+    background-color: white;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: left 12px center;
+}
+
+.language-select-wrapper select:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 120, 212, 0.1);
+}
+
+.language-select-wrapper select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+}

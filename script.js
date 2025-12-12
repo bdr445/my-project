@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const db = firebase.firestore();
     let tasksCollection; // Will be defined after user logs in
 
+    // Apply language settings
+    if (window.I18N) {
+        I18N.applyTasks();
+    }
+
     // DOM Elements
     const taskForm = document.getElementById('task-form');
     const tasksList = document.getElementById('tasks-list');
@@ -706,8 +711,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 controlsDiv.className = 'trash-controls';
                 controlsDiv.innerHTML = `
                     <p class="deleted-info-message">سيتم حذف المهام نهائياً بعد 30 يوماً.</p>
-                    <button id="empty-trash-btn" class="btn btn-danger-soft">إفراغ سلة المحذوفات (${processedTasks.length})</button>
-                    <hr>
+                    <button id="empty-trash-btn" class="btn btn-danger-soft">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        إفراغ سلة المحذوفات (${processedTasks.length})
+                    </button>
                  `;
                 tasksList.appendChild(controlsDiv);
 
@@ -1337,8 +1344,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Elements
     const pomodoroWidget = document.getElementById('pomodoro-widget');
     const pomodoroToggleBtn = document.getElementById('pomodoro-toggle-btn');
-    const closePomodoroBtn = document.getElementById('close-pomodoro');
-    const minimizePomodoroBtn = document.getElementById('minimize-pomodoro');
     const pomodoroMinimized = document.getElementById('pomodoro-minimized');
     const miniTimerDisplay = document.getElementById('mini-timer-display');
 
@@ -1353,18 +1358,24 @@ document.addEventListener('DOMContentLoaded', () => {
         pomodoroWidget.classList.toggle('hidden');
     });
 
-    closePomodoroBtn.addEventListener('click', () => {
-        pomodoroWidget.classList.add('hidden');
+    // Click outside to minimize
+    document.addEventListener('click', (e) => {
+        if (!pomodoroWidget.classList.contains('hidden') &&
+            !pomodoroWidget.classList.contains('minimized') &&
+            !pomodoroWidget.contains(e.target) &&
+            e.target !== pomodoroToggleBtn) {
+            pomodoroWidget.classList.add('minimized');
+        }
     });
 
-    minimizePomodoroBtn.addEventListener('click', () => {
-        pomodoroWidget.classList.toggle('minimized');
-        minimizePomodoroBtn.textContent = pomodoroWidget.classList.contains('minimized') ? '□' : '_';
-    });
-
-    pomodoroMinimized.addEventListener('click', () => {
-        pomodoroWidget.classList.remove('minimized');
-        minimizePomodoroBtn.textContent = '_';
+    // Click on widget when minimized to expand
+    let wasDragging = false;
+    pomodoroWidget.addEventListener('click', (e) => {
+        if (pomodoroWidget.classList.contains('minimized') && !wasDragging) {
+            e.stopPropagation(); // Prevent document click from re-minimizing
+            pomodoroWidget.classList.remove('minimized');
+        }
+        wasDragging = false; // Reset flag
     });
 
     // Draggable Logic
@@ -1385,12 +1396,17 @@ document.addEventListener('DOMContentLoaded', () => {
         initialX = e.clientX - xOffset;
         initialY = e.clientY - yOffset;
 
-        if (e.target === dragHandle) {
+        if (e.target === dragHandle || dragHandle.contains(e.target)) {
             isDragging = true;
+            e.stopPropagation(); // Prevent click event from firing
+            e.preventDefault(); // Prevent text selection
         }
     }
 
     function dragEnd(e) {
+        if (isDragging) {
+            wasDragging = true; // Mark that dragging occurred
+        }
         initialX = currentX;
         initialY = currentY;
         isDragging = false;
@@ -1433,10 +1449,489 @@ document.addEventListener('DOMContentLoaded', () => {
     // Toggle Logic
     const toggleBtn = document.getElementById('toggle-timer-btn');
 
+    // Audio context for alarm
+    let audioContext = null;
+    let alarmOscillator = null;
+    let alarmGainNode = null;
+    let isAlarmPlaying = false;
+    let isAlarmMuted = localStorage.getItem('pomodoroMuted') === 'true' || false;
+
+    const playAlarm = () => {
+        if (isAlarmPlaying || isAlarmMuted) return;
+
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Get selected alarm sound type
+        const alarmType = localStorage.getItem('alarmSound') || 'classic';
+
+        switch (alarmType) {
+            case 'gentle':
+                playGentleAlarmSound();
+                break;
+            case 'bell':
+                playBellAlarmSound();
+                break;
+            case 'digital':
+                playDigitalAlarmSound();
+                break;
+            case 'chime':
+                playChimeAlarmSound();
+                break;
+            case 'marimba':
+                playMarimbaAlarmSound();
+                break;
+            case 'radar':
+                playRadarAlarmSound();
+                break;
+            case 'birdsong':
+                playBirdsongAlarmSound();
+                break;
+            case 'ascending':
+                playAscendingAlarmSound();
+                break;
+            case 'pulse':
+                playPulseAlarmSound();
+                break;
+            case 'xylophone':
+                playXylophoneAlarmSound();
+                break;
+            case 'cosmic':
+                playCosmicAlarmSound();
+                break;
+            case 'harp':
+                playHarpAlarmSound();
+                break;
+            case 'piano':
+                playPianoAlarmSound();
+                break;
+            case 'windchimes':
+                playWindchimesAlarmSound();
+                break;
+            case 'bells':
+                playBellsAlarmSound();
+                break;
+            case 'musicbox':
+                playMusicboxAlarmSound();
+                break;
+            case 'flute':
+                playFluteAlarmSound();
+                break;
+            case 'classic':
+            default:
+                playClassicAlarmSound();
+                break;
+        }
+
+        isAlarmPlaying = true;
+    };
+
+    const playClassicAlarmSound = () => {
+        alarmOscillator = audioContext.createOscillator();
+        alarmGainNode = audioContext.createGain();
+
+        alarmOscillator.type = 'sine';
+        alarmOscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+
+        const lfo = audioContext.createOscillator();
+        lfo.type = 'square';
+        lfo.frequency.value = 2;
+        const lfoGain = audioContext.createGain();
+        lfoGain.gain.value = 200;
+        lfo.connect(lfoGain);
+        lfoGain.connect(alarmOscillator.frequency);
+
+        alarmGainNode.gain.value = 0.3;
+
+        alarmOscillator.connect(alarmGainNode);
+        alarmGainNode.connect(audioContext.destination);
+
+        alarmOscillator.start();
+        lfo.start();
+    };
+
+    const playGentleAlarmSound = () => {
+        alarmOscillator = audioContext.createOscillator();
+        alarmGainNode = audioContext.createGain();
+
+        alarmOscillator.type = 'sine';
+        alarmOscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+        alarmOscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 2);
+
+        alarmGainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+
+        alarmOscillator.connect(alarmGainNode);
+        alarmGainNode.connect(audioContext.destination);
+
+        alarmOscillator.start();
+    };
+
+    const playBellAlarmSound = () => {
+        // Create repeating bell sound
+        const playBell = (time) => {
+            const osc1 = audioContext.createOscillator();
+            const osc2 = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+
+            osc1.frequency.value = 659; // E5
+            osc2.frequency.value = 523; // C5
+            osc1.type = 'sine';
+            osc2.type = 'sine';
+
+            gain.gain.setValueAtTime(0.2, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.8);
+
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(audioContext.destination);
+
+            osc1.start(time);
+            osc2.start(time + 0.3);
+            osc1.stop(time + 0.8);
+            osc2.stop(time + 1.1);
+        };
+
+        // Play bell every 2 seconds
+        for (let i = 0; i < 10; i++) {
+            playBell(audioContext.currentTime + i * 2);
+        }
+
+        alarmOscillator = { stop: () => { }, disconnect: () => { } };
+        alarmGainNode = { disconnect: () => { } };
+    };
+
+    const playDigitalAlarmSound = () => {
+        alarmOscillator = audioContext.createOscillator();
+        alarmGainNode = audioContext.createGain();
+
+        alarmOscillator.type = 'square';
+        alarmOscillator.frequency.value = 1000;
+
+        // Create beep pattern
+        const pattern = [0.2, 0, 0.2, 0, 0.2, 0]; // beep-pause-beep-pause-beep
+        let time = audioContext.currentTime;
+
+        pattern.forEach((vol, i) => {
+            alarmGainNode.gain.setValueAtTime(vol, time + i * 0.2);
+        });
+
+        alarmOscillator.connect(alarmGainNode);
+        alarmGainNode.connect(audioContext.destination);
+
+        alarmOscillator.start();
+    };
+
+    const playChimeAlarmSound = () => {
+        const notes = [523.25, 659.25, 783.99];
+        notes.forEach((freq, i) => {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            const time = audioContext.currentTime + i * 0.2;
+            gain.gain.setValueAtTime(0.15, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 1.5);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(time);
+            osc.stop(time + 1.5);
+        });
+        alarmOscillator = { stop: () => { }, disconnect: () => { } };
+        alarmGainNode = { disconnect: () => { } };
+    };
+
+    const playMarimbaAlarmSound = () => {
+        const melody = [392, 440, 494, 523, 587];
+        melody.forEach((freq, i) => {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            const time = audioContext.currentTime + i * 0.25;
+            gain.gain.setValueAtTime(0.2, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.4);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(time);
+            osc.stop(time + 0.4);
+        });
+        alarmOscillator = { stop: () => { }, disconnect: () => { } };
+        alarmGainNode = { disconnect: () => { } };
+    };
+
+    const playRadarAlarmSound = () => {
+        alarmOscillator = audioContext.createOscillator();
+        alarmGainNode = audioContext.createGain();
+        alarmOscillator.type = 'sine';
+        alarmOscillator.frequency.value = 600;
+        for (let i = 0; i < 10; i++) {
+            const time = audioContext.currentTime + i * 0.6;
+            alarmGainNode.gain.setValueAtTime(0, time);
+            alarmGainNode.gain.linearRampToValueAtTime(0.25, time + 0.1);
+            alarmGainNode.gain.linearRampToValueAtTime(0, time + 0.5);
+        }
+        alarmOscillator.connect(alarmGainNode);
+        alarmGainNode.connect(audioContext.destination);
+        alarmOscillator.start();
+    };
+
+    const playBirdsongAlarmSound = () => {
+        for (let i = 0; i < 8; i++) {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = 'sine';
+            const time = audioContext.currentTime + i * 0.7;
+            osc.frequency.setValueAtTime(1500, time);
+            osc.frequency.exponentialRampToValueAtTime(2500, time + 0.1);
+            osc.frequency.exponentialRampToValueAtTime(1800, time + 0.2);
+            gain.gain.setValueAtTime(0.15, time);
+            gain.gain.linearRampToValueAtTime(0, time + 0.3);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(time);
+            osc.stop(time + 0.3);
+        }
+        alarmOscillator = { stop: () => { }, disconnect: () => { } };
+        alarmGainNode = { disconnect: () => { } };
+    };
+
+    const playAscendingAlarmSound = () => {
+        alarmOscillator = audioContext.createOscillator();
+        alarmGainNode = audioContext.createGain();
+        alarmOscillator.type = 'sine';
+        alarmOscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+        alarmOscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 3);
+        alarmGainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        alarmOscillator.connect(alarmGainNode);
+        alarmGainNode.connect(audioContext.destination);
+        alarmOscillator.start();
+    };
+
+    const playPulseAlarmSound = () => {
+        alarmOscillator = audioContext.createOscillator();
+        alarmGainNode = audioContext.createGain();
+        alarmOscillator.type = 'sine';
+        alarmOscillator.frequency.value = 440;
+        for (let i = 0; i < 15; i++) {
+            const time = audioContext.currentTime + i * 0.35;
+            alarmGainNode.gain.setValueAtTime(0, time);
+            alarmGainNode.gain.linearRampToValueAtTime(0.25, time + 0.15);
+            alarmGainNode.gain.linearRampToValueAtTime(0, time + 0.3);
+        }
+        alarmOscillator.connect(alarmGainNode);
+        alarmGainNode.connect(audioContext.destination);
+        alarmOscillator.start();
+    };
+
+    const playXylophoneAlarmSound = () => {
+        const scale = [523, 587, 659, 698, 784, 880, 988, 1047];
+        for (let j = 0; j < 3; j++) {
+            scale.forEach((freq, i) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.type = 'square';
+                osc.frequency.value = freq;
+                const time = audioContext.currentTime + (j * 1.2) + (i * 0.15);
+                gain.gain.setValueAtTime(0.15, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.start(time);
+                osc.stop(time + 0.3);
+            });
+        }
+        alarmOscillator = { stop: () => { }, disconnect: () => { } };
+        alarmGainNode = { disconnect: () => { } };
+    };
+
+    const playCosmicAlarmSound = () => {
+        alarmOscillator = audioContext.createOscillator();
+        const osc2 = audioContext.createOscillator();
+        alarmGainNode = audioContext.createGain();
+        alarmOscillator.type = 'sine';
+        osc2.type = 'sine';
+        alarmOscillator.frequency.setValueAtTime(220, audioContext.currentTime);
+        alarmOscillator.frequency.exponentialRampToValueAtTime(440, audioContext.currentTime + 3);
+        osc2.frequency.setValueAtTime(330, audioContext.currentTime);
+        osc2.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 3);
+        alarmGainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        alarmOscillator.connect(alarmGainNode);
+        osc2.connect(alarmGainNode);
+        alarmGainNode.connect(audioContext.destination);
+        alarmOscillator.start();
+        osc2.start();
+    };
+
+    const playHarpAlarmSound = () => {
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25];
+        notes.forEach((freq, i) => {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            const time = audioContext.currentTime + i * 0.12;
+            gain.gain.setValueAtTime(0.2, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 1.2);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(time);
+            osc.stop(time + 1.2);
+        });
+        alarmOscillator = { stop: () => { }, disconnect: () => { } };
+        alarmGainNode = { disconnect: () => { } };
+    };
+
+    const playPianoAlarmSound = () => {
+        const melody = [523.25, 587.33, 659.25, 783.99, 880.00];
+        melody.forEach((freq, i) => {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            const time = audioContext.currentTime + i * 0.3;
+            gain.gain.setValueAtTime(0.25, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.6);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(time);
+            osc.stop(time + 0.6);
+        });
+        alarmOscillator = { stop: () => { }, disconnect: () => { } };
+        alarmGainNode = { disconnect: () => { } };
+    };
+
+    const playWindchimesAlarmSound = () => {
+        const baseNotes = [523, 587, 659, 784, 880, 988];
+        for (let i = 0; i < 12; i++) {
+            const randomNote = baseNotes[Math.floor(Math.random() * baseNotes.length)];
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = randomNote;
+            const time = audioContext.currentTime + i * 0.4 + (Math.random() * 0.2);
+            gain.gain.setValueAtTime(0.12, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 1.5);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(time);
+            osc.stop(time + 1.5);
+        }
+        alarmOscillator = { stop: () => { }, disconnect: () => { } };
+        alarmGainNode = { disconnect: () => { } };
+    };
+
+    const playBellsAlarmSound = () => {
+        const bellNotes = [523.25, 659.25, 783.99];
+        for (let i = 0; i < 5; i++) {
+            bellNotes.forEach((freq, j) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                const time = audioContext.currentTime + (i * 1.5) + (j * 0.3);
+                gain.gain.setValueAtTime(0.2, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 1.0);
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.start(time);
+                osc.stop(time + 1.0);
+            });
+        }
+        alarmOscillator = { stop: () => { }, disconnect: () => { } };
+        alarmGainNode = { disconnect: () => { } };
+    };
+
+    const playMusicboxAlarmSound = () => {
+        const melody = [659.25, 783.99, 880.00, 783.99, 659.25, 523.25];
+        for (let j = 0; j < 3; j++) {
+            melody.forEach((freq, i) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                const time = audioContext.currentTime + (j * 2.1) + (i * 0.35);
+                gain.gain.setValueAtTime(0.15, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.start(time);
+                osc.stop(time + 0.5);
+            });
+        }
+        alarmOscillator = { stop: () => { }, disconnect: () => { } };
+        alarmGainNode = { disconnect: () => { } };
+    };
+
+    const playFluteAlarmSound = () => {
+        const melody = [523.25, 587.33, 659.25, 698.46, 783.99];
+        melody.forEach((freq, i) => {
+            const osc = audioContext.createOscillator();
+            const vibrato = audioContext.createOscillator();
+            const vibratoGain = audioContext.createGain();
+            const gain = audioContext.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            vibrato.type = 'sine';
+            vibrato.frequency.value = 5;
+            vibratoGain.gain.value = 3;
+            vibrato.connect(vibratoGain);
+            vibratoGain.connect(osc.frequency);
+            const time = audioContext.currentTime + i * 0.4;
+            gain.gain.setValueAtTime(0.18, time);
+            gain.gain.exponentialRampToValueAtTime(0.01, time + 0.7);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(time);
+            vibrato.start(time);
+            osc.stop(time + 0.7);
+            vibrato.stop(time + 0.7);
+        });
+        alarmOscillator = { stop: () => { }, disconnect: () => { } };
+        alarmGainNode = { disconnect: () => { } };
+    };
+
+    const stopAlarm = () => {
+        if (!isAlarmPlaying) return;
+
+        if (alarmOscillator) {
+            alarmOscillator.stop();
+            alarmOscillator.disconnect();
+        }
+        if (alarmGainNode) {
+            alarmGainNode.disconnect();
+        }
+        if (audioContext) {
+            audioContext.close();
+        }
+        isAlarmPlaying = false;
+    };
+
+    const toggleMute = () => {
+        isAlarmMuted = !isAlarmMuted;
+        localStorage.setItem('pomodoroMuted', isAlarmMuted);
+        updateMuteButton();
+    };
+
+    const updateMuteButton = () => {
+        const muteBtn = document.getElementById('mute-timer-btn');
+        if (muteBtn) {
+            if (isAlarmMuted) {
+                muteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>`;
+                muteBtn.title = 'تشغيل الصوت';
+            } else {
+                muteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>`;
+                muteBtn.title = 'كتم الصوت';
+            }
+        }
+    };
+
     const updateToggleButton = () => {
-        toggleBtn.textContent = isTimerRunning ? '⏸' : '▶';
-        toggleBtn.title = isTimerRunning ? 'إيقاف مؤقت' : 'تشغيل';
-        // Optional: formatting changes if needed
+        if (isTimerRunning) {
+            toggleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
+            toggleBtn.title = 'إيقاف مؤقت';
+        } else {
+            toggleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+            toggleBtn.title = 'تشغيل';
+        }
     };
 
     const toggleTimer = () => {
@@ -1455,9 +1950,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     clearInterval(timerInterval);
                     isTimerRunning = false;
                     updateToggleButton();
-                    // Play sound or notification here
-                    alert('انتهى الوقت! خذ قسطاً من الراحة.');
-                    document.title = 'انتهى الوقت! - TaskMaster';
+
+                    // Play alarm and show modal
+                    playAlarm();
+                    document.title = '⏰ انتهى الوقت! - TaskMaster';
+
+                    // Create and show alarm modal
+                    const alarmModal = document.createElement('div');
+                    alarmModal.className = 'modal-overlay';
+                    alarmModal.id = 'alarm-modal';
+                    alarmModal.innerHTML = `
+                        <div class="modal-content confirm-modal" style="text-align: center;">
+                            <h2 style="font-size: 2em; margin-bottom: 20px;">⏰</h2>
+                            <h2>انتهى الوقت!</h2>
+                            <p style="font-size: 1.1em; margin: 20px 0;">حان وقت أخذ استراحة</p>
+                            <button id="dismiss-alarm-btn" class="btn" style="width: auto; padding: 12px 40px;">إيقاف المنبه</button>
+                        </div>
+                    `;
+                    document.body.appendChild(alarmModal);
+
+                    // Dismiss alarm
+                    document.getElementById('dismiss-alarm-btn').addEventListener('click', () => {
+                        stopAlarm();
+                        document.body.removeChild(alarmModal);
+                        document.title = 'قائمة المهام - TaskMaster';
+                    });
                 }
             }, 1000);
         }
@@ -1468,9 +1985,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetTimer = () => {
         clearInterval(timerInterval);
         isTimerRunning = false;
-        // Reset to currently selected mode
-        const activeMode = document.querySelector('.mode-btn.active');
-        timeLeft = parseInt(activeMode.dataset.time) * 60;
+
+        // Check if custom mode is active
+        const customBtn = document.getElementById('custom-mode-btn');
+        if (customBtn && customBtn.classList.contains('active')) {
+            // Use stored custom timer value
+            const storedValue = window.customTimerValue || 25;
+            timeLeft = storedValue * 60;
+        } else {
+            // Reset to currently selected mode
+            const activeMode = document.querySelector('.mode-btn.active');
+            if (activeMode && activeMode.dataset.time) {
+                timeLeft = parseInt(activeMode.dataset.time) * 60;
+            } else {
+                timeLeft = 25 * 60; // Default fallback
+            }
+        }
+
         updateDisplay();
         updateToggleButton();
     };
@@ -1478,19 +2009,82 @@ document.addEventListener('DOMContentLoaded', () => {
     toggleBtn.addEventListener('click', toggleTimer);
     resetBtn.addEventListener('click', resetTimer);
 
+    // Mute button
+    const muteBtn = document.getElementById('mute-timer-btn');
+    if (muteBtn) {
+        muteBtn.addEventListener('click', toggleMute);
+        updateMuteButton(); // Initialize button state
+    }
+
+    // Custom timer elements
+    const customModeBtn = document.getElementById('custom-mode-btn');
+    const customTimerInput = document.getElementById('custom-timer-input');
+    const customMinutesInput = document.getElementById('custom-minutes');
+    const setCustomTimerBtn = document.getElementById('set-custom-timer');
+    let customTimerValue = 25; // Store custom timer value
+
     modeBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
+            // Check if custom button was clicked
+            if (e.target.id === 'custom-mode-btn') {
+                // Toggle custom input visibility
+                customTimerInput.classList.toggle('hidden');
+
+                // If showing input, highlight the custom button
+                if (!customTimerInput.classList.contains('hidden')) {
+                    modeBtns.forEach(b => b.classList.remove('active'));
+                    customModeBtn.classList.add('active');
+                }
+                return;
+            }
+
+            // For regular mode buttons
             modeBtns.forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
 
             clearInterval(timerInterval);
             isTimerRunning = false;
-            updateToggleButton(); // Ensure button shows 'Play'
+            updateToggleButton();
 
             timeLeft = parseInt(e.target.dataset.time) * 60;
             updateDisplay();
+
+            // Hide custom input when switching to preset modes
+            customTimerInput.classList.add('hidden');
         });
     });
+
+    // Set custom timer button
+    if (setCustomTimerBtn) {
+        setCustomTimerBtn.addEventListener('click', () => {
+            const minutes = parseInt(customMinutesInput.value) || 25;
+
+            // Validate input
+            if (minutes < 1 || minutes > 120) {
+                alert('الرجاء إدخال قيمة بين 1 و 120 دقيقة');
+                return;
+            }
+
+            // Store custom timer value
+            customTimerValue = minutes;
+            window.customTimerValue = minutes; // Make it globally accessible
+
+            // Clear active state from all mode buttons
+            modeBtns.forEach(b => b.classList.remove('active'));
+            customModeBtn.classList.add('active');
+
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            updateToggleButton();
+
+            timeLeft = minutes * 60;
+            updateDisplay();
+
+            // Hide input after applying
+            customTimerInput.classList.add('hidden');
+        });
+    }
+
 
 
     // --- Initial Load ---

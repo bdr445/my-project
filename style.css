@@ -616,29 +616,50 @@ header p {
 }
 
 .btn-danger-soft {
-    background-color: #ffe6e6;
+    background-color: rgba(220, 53, 69, 0.15);
     color: #dc3545;
-    border: 1px solid #dc3545;
-    margin-top: 10px;
+    border: 2px solid rgba(220, 53, 69, 0.3);
+    margin-top: 15px;
     width: auto;
-    display: inline-block;
-    padding: 8px 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 28px;
+    border-radius: 50px;
+    font-weight: 700;
+    font-size: 0.95em;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.1);
 }
 
 .btn-danger-soft:hover {
-    background-color: #dc3545;
-    color: white;
+    background-color: #dc3545 !important;
+    color: white !important;
+    border-color: #dc3545 !important;
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(220, 53, 69, 0.4);
+}
+
+.btn-danger-soft:active {
+    transform: translateY(-1px) scale(0.98);
+    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
 }
 
 .trash-controls {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(5px);
+    border-radius: 12px;
+    /* Removed border as requested */
 }
 
 .deleted-info-message {
     color: #666;
-    font-size: 0.9em;
-    margin-bottom: 10px;
+    font-size: 0.95em;
+    margin-bottom: 12px;
+    font-weight: 500;
 }
 
 /* Tag Styles */
@@ -2066,39 +2087,44 @@ header p {
 /* Rest of Pomodoro Styles ... */
 .pomodoro-header {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 30px;
+    top: -5px;
+    right: 0;
+    width: auto;
+    height: 35px;
     z-index: 10;
-    cursor: move;
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    padding: 0 8px;
-}
-
-.pomodoro-header button {
-    background: rgba(255, 255, 255, 0.8);
-    border: none;
-    color: #bbb;
-    cursor: pointer;
-    font-size: 1.2em;
-    padding: 2px 6px;
-    line-height: 1;
-    border-radius: 4px;
-    transition: color 0.2s;
-}
-
-.pomodoro-header button:hover {
-    color: #444;
-    background: white;
+    padding: 8px;
 }
 
 .pomodoro-header .drag-handle {
-    flex-grow: 1;
-    height: 100%;
+    cursor: move;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: transparent;
     opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: -4px;
+}
+
+.pomodoro-widget.minimized:hover .drag-handle {
+    opacity: 1;
+}
+
+.pomodoro-widget:not(.minimized) .drag-handle {
+    display: none;
+}
+
+.pomodoro-header .drag-handle:hover {
+    background: transparent;
+}
+
+.pomodoro-header .drag-handle svg {
+    opacity: 0.6;
 }
 
 .pomodoro-body {
@@ -2137,6 +2163,7 @@ header p {
 .timer-controls {
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 12px;
     margin-bottom: 16px;
 }
@@ -2175,6 +2202,10 @@ header p {
     background: #e9ecef;
 }
 
+.timer-btn svg {
+    display: block;
+}
+
 .timer-mode {
     display: flex;
     justify-content: center;
@@ -2202,6 +2233,54 @@ header p {
 .mode-btn:hover:not(.active) {
     background: #e9ecef;
 
+}
+
+.custom-timer-input {
+    margin-top: 12px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    /* Prevent overflow */
+}
+
+.custom-timer-input.hidden {
+    display: none;
+}
+
+.custom-timer-input input[type="number"] {
+    width: 60px;
+    padding: 6px 8px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1em;
+    font-weight: 600;
+    color: #333;
+    background: white;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.custom-timer-input input[type="number"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+}
+
+.custom-timer-input input[type="number"]::-webkit-inner-spin-button,
+.custom-timer-input input[type="number"]::-webkit-outer-spin-button {
+    opacity: 1;
+    height: 30px;
+}
+
+.custom-timer-input .btn {
+    white-space: nowrap;
+    font-size: 0.8em;
+    padding: 6px 8px;
+    flex-shrink: 1;
+    min-width: 50px;
 }
 
 /* Tour Overlay Styles */

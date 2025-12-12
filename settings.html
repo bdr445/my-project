@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>الإعدادات - TaskMaster</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="settings-style.css">
     <script src="i18n.js"></script>
     <!-- Firebase SDK (v9 compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -74,6 +75,34 @@
                 <button id="restart-tour-btn" class="btn btn-secondary" style="width: auto;">بدء الجولة التعريفية من
                     جديد</button>
                 <p style="font-size: 0.8em; color: #888;">هل فاتك شيء؟ يمكنك إعادة تشغيل الجولة المساعدة.</p>
+            </div>
+
+            <div class="setting-group">
+                <h2>نغمة المنبه</h2>
+                <div class="alarm-sound-select-wrapper">
+                    <select id="alarm-sound-select" class="alarm-select">
+                        <option value="gentle">منبه هادئ</option>
+                        <option value="chime">نغمة ناعمة</option>
+                        <option value="marimba">نغمة مرحة</option>
+                        <option value="birdsong">تغريد طيور</option>
+                        <option value="xylophone">نغمة متصاعدة</option>
+                        <option value="harp">نغمة هادئة</option>
+                        <option value="piano">نغمة بسيطة</option>
+                        <option value="windchimes">أجراس هوائية</option>
+                        <option value="bells">أجراس متكررة</option>
+                        <option value="musicbox">نغمة هادئة ومتكررة</option>
+                        <option value="flute">نغمة ناعمة مع اهتزاز</option>
+                        <option value="cosmic">نغمة إثيرية</option>
+                        <option value="classic">منبه كلاسيكي</option>
+                    </select>
+                    <button id="preview-alarm-btn" class="preview-alarm-btn" title="تجربة النغمة">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                    </button>
+                </div>
+                <p style="font-size: 0.8em; color: #888;">اختر نغمة المنبه التي تفضلها عند انتهاء المؤقت.</p>
             </div>
 
             <a href="tasks.html" class="btn" style="display: inline-block; width: auto; padding: 10px 30px;">العودة

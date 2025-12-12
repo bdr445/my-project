@@ -295,20 +295,54 @@
     <!-- Floating Pomodoro Button (Moved outside sidebar) -->
     <div id="pomodoro-widget" class="pomodoro-widget hidden">
         <div class="pomodoro-header">
-            <span class="drag-handle"></span>
-            <button id="minimize-pomodoro" title="تصغير">_</button>
-            <button id="close-pomodoro" title="إغلاق">×</button>
+            <div class="drag-handle" title="اسحب لتحريك المؤقت">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <circle cx="9" cy="5" r="1"></circle>
+                    <circle cx="9" cy="12" r="1"></circle>
+                    <circle cx="9" cy="19" r="1"></circle>
+                    <circle cx="15" cy="5" r="1"></circle>
+                    <circle cx="15" cy="12" r="1"></circle>
+                    <circle cx="15" cy="19" r="1"></circle>
+                </svg>
+            </div>
         </div>
         <div class="pomodoro-body">
             <div class="timer-display" id="pomodoro-timer">25:00</div>
             <div class="timer-controls">
-                <button id="toggle-timer-btn" class="timer-btn" title="تشغيل/إيقاف">▶</button>
-                <button id="reset-timer-btn" class="timer-btn reset" title="إعادة تعيين">↺</button>
+                <button id="toggle-timer-btn" class="timer-btn" title="تشغيل/إيقاف">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </button>
+                <button id="reset-timer-btn" class="timer-btn reset" title="إعادة تعيين">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                </button>
+                <button id="mute-timer-btn" class="timer-btn reset" title="كتم الصوت">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                </button>
             </div>
             <div class="timer-mode">
                 <button class="mode-btn active" data-time="25">تركيز</button>
                 <button class="mode-btn" data-time="5">راحة</button>
-                <button class="mode-btn" data-time="15">طويلة</button>
+                <button class="mode-btn" id="custom-mode-btn">مخصص</button>
+            </div>
+            <div id="custom-timer-input" class="custom-timer-input hidden">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="number" id="custom-minutes" min="1" max="120" value="25" placeholder="25">
+                    <span style="font-size: 0.9em; color: #666; white-space: nowrap;">دقيقة</span>
+                    <button id="set-custom-timer" class="btn"
+                        style="flex: 1; padding: 8px 16px; font-size: 0.9em; margin: 0;">تطبيق</button>
+                </div>
             </div>
         </div>
         <div class="pomodoro-minimized hidden" id="pomodoro-minimized">
