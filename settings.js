@@ -165,4 +165,15 @@ document.addEventListener('DOMContentLoaded', () => {
             updateSetting('language', lang);
         });
     }
+
+    const restartTourBtn = document.getElementById('restart-tour-btn');
+    if (restartTourBtn) {
+        restartTourBtn.addEventListener('click', () => {
+            if (confirm('هل تريد إعادة تشغيل الجولة التعريفية؟ سيتم نقلك إلى الصفحة الرئيسية.')) {
+                localStorage.setItem('restart_tour_flag', 'true');
+                localStorage.setItem('tour_v2_completed', 'false'); // Reset completion
+                window.location.href = 'tasks.html';
+            }
+        });
+    }
 });

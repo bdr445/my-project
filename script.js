@@ -177,25 +177,196 @@ document.addEventListener('DOMContentLoaded', () => {
             accountMenu.classList.add('hidden');
         }
     });
+    // --- Empty Trash Logic ---
+    const emptyTrash = async () => {
+        if (!confirm('هل أنت متأكد من حذف جميع المهام في سلة المحذوفات؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+
+        if (!tasksCollection) return;
+        const snapshot = await tasksCollection.where('isDeleted', '==', true).get();
+
+        if (snapshot.empty) {
+            alert('سلة المحذوفات فارغة بالفعل.');
+            return;
+        }
+
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        try {
+            await batch.commit();
+            renderTasks();
+            alert('تم إفراغ سلة المحذوفات بنجاح.');
+        } catch (error) {
+            console.error("Error emptying trash: ", error);
+            alert("حدث خطأ أثناء إفراغ سلة المحذوفات.");
+        }
+    };
+
     // --- Modal Logic ---
     let currentSubtasks = []; // Temporary storage for subtasks in the modal
+    let currentTags = []; // Temporary storage for tags in the modal (Array of objects {name, color})
+
+    // --- Tags Logic Helper ---
+    const getGlobalTags = () => {
+        const uniqueTags = new Map();
+        localTasksCache.forEach(task => { // Use localTasksCache which has all tasks
+            if (task.tags && !task.isDeleted) {
+                task.tags.forEach(t => {
+                    const name = typeof t === 'string' ? t : t.name;
+                    const color = typeof t === 'string' ? '#e0e0e0' : t.color;
+                    // Only store distinct case-insensitive tags
+                    if (!uniqueTags.has(name.toLowerCase())) {
+                        uniqueTags.set(name.toLowerCase(), { name, color });
+                    }
+                });
+            }
+        });
+        return uniqueTags;
+    };
+
+    const updateTagSuggestions = () => {
+        const dataList = document.getElementById('available-tags');
+        if (!dataList) return;
+
+        dataList.innerHTML = '';
+        const globalTags = getGlobalTags();
+
+        globalTags.forEach(tagRef => {
+            const option = document.createElement('option');
+            option.value = tagRef.name;
+            dataList.appendChild(option);
+        });
+    };
+
+    // --- Tag Hint Logic ---
+    const tagHintElement = document.getElementById('tag-hint-message');
+
+    // Auto-fill color on selection & Show Hint
+    const newTagNameInput = document.getElementById('new-tag-name');
+    const newTagColorInput = document.getElementById('new-tag-color');
+
+    if (newTagNameInput) {
+        newTagNameInput.addEventListener('input', (e) => {
+            const val = e.target.value.trim();
+            const valLower = val.toLowerCase();
+            const globalTags = getGlobalTags();
+
+            // Auto Color Logic
+            if (globalTags.has(valLower)) {
+                const tagRef = globalTags.get(valLower);
+                if (newTagColorInput) newTagColorInput.value = tagRef.color;
+            }
+
+            // Hint Logic: Show if typing and not dismiss permanently
+            // Check if dismissed before showing
+            if (val.length > 0) {
+                if (localStorage.getItem('tagHintDismissed') !== 'true') {
+                    if (tagHintElement) tagHintElement.classList.remove('hidden');
+                }
+            } else {
+                if (tagHintElement) tagHintElement.classList.add('hidden');
+            }
+        });
+    }
 
     // --- Modal Logic ---
     const openAddModal = () => {
         editingTaskId = null;
         taskForm.reset();
         currentSubtasks = []; // Reset subtasks
+        currentTags = []; // Reset tags
         renderSubtasksPreview();
+        renderTagsPreview();
+        updateTagSuggestions(); // Populate datalist
         modalTitle.textContent = 'إضافة مهمة جديدة';
         modalSubmitBtn.textContent = 'إضافة المهمة';
         modal.classList.remove('hidden');
         document.getElementById('task-title').focus();
+
+        // Hide hint initially when opening modal
+        if (tagHintElement) tagHintElement.classList.add('hidden');
     };
 
     const closeModal = () => {
         modal.classList.add('hidden');
         editingTaskId = null;
         currentSubtasks = [];
+        currentTags = [];
+    };
+
+    // Tags UI Logic
+    const addTagBtn = document.getElementById('add-tag-btn');
+    const tagsListPreview = document.getElementById('selected-tags-container');
+
+    const handleAddTag = () => {
+        const name = newTagNameInput.value.trim();
+        let color = newTagColorInput.value;
+
+        if (!name) return;
+
+        // 1. Check if already added to CURRENT task
+        if (currentTags.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+            alert('هذا الوسم مضاف بالفعل لهذه المهمة.');
+            return;
+        }
+
+        // 2. Check GLOBAL tags to enforce color consistency
+        const globalTags = getGlobalTags();
+        if (globalTags.has(name.toLowerCase())) {
+            const existing = globalTags.get(name.toLowerCase());
+            // Check if user is trying to use a different color
+            if (existing.color.toLowerCase() !== color.toLowerCase()) {
+                alert('لا يمكنك تغيير لون هذا الوسم الموجود مسبقاً.');
+                color = existing.color;
+            } else {
+                color = existing.color;
+            }
+        }
+
+        currentTags.push({ name, color });
+        renderTagsPreview();
+        newTagNameInput.value = '';
+        newTagNameInput.focus();
+
+        // Hide Hint Permanently on successful add
+        if (tagHintElement) {
+            tagHintElement.classList.add('hidden');
+            localStorage.setItem('tagHintDismissed', 'true');
+        }
+    };
+
+    // Will attach this in the DOMContentLoaded or after HTML update. 
+    // Since we are replacing lines where listeners are attached, we can allow this to be set up safely.
+    // However, the elements addTagBtn etc don't exist in DOM yet. 
+    // We should put this logic inside a setup function or simply replace lines where listeners are.
+
+    const renderTagsPreview = () => {
+        if (!tagsListPreview) return;
+        tagsListPreview.innerHTML = '';
+        currentTags.forEach((tag, index) => {
+            const chip = document.createElement('span');
+            chip.className = 'tag-chip';
+            chip.style.backgroundColor = tag.color;
+            // Contrast check for text color could be good, but simple for now
+            chip.style.color = '#fff';
+            chip.style.textShadow = '0 1px 2px rgba(0,0,0,0.3)';
+            chip.style.display = 'inline-flex';
+            chip.style.alignItems = 'center';
+            chip.style.cursor = 'default';
+
+            chip.innerHTML = `${escapeHTML(tag.name)} <button type="button" class="remove-tag-btn" data-index="${index}" style="margin-right:5px;background:none;border:none;color:white;cursor:pointer;">&times;</button>`;
+            tagsListPreview.appendChild(chip);
+        });
+
+        tagsListPreview.querySelectorAll('.remove-tag-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                currentTags.splice(index, 1);
+                renderTagsPreview();
+            });
+        });
     };
 
     // Subtask UI Logic in Modal
@@ -449,7 +620,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentFilter.startsWith('tag:')) {
                     // Tag Filter
                     const targetTag = currentFilter.substring(4);
-                    processedTasks = processedTasks.filter(task => task.tags && task.tags.includes(targetTag));
+                    // Handle both legacy string tags and new object tags
+                    processedTasks = processedTasks.filter(task => {
+                        if (!task.tags) return false;
+                        return task.tags.some(t => {
+                            const tagName = typeof t === 'string' ? t : t.name;
+                            return tagName === targetTag;
+                        });
+                    });
                 } else {
                     // Priority Filter
                     processedTasks = processedTasks.filter(task => task.priority === currentFilter);
@@ -461,24 +639,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const tagsFiltersContainer = document.getElementById('tags-filters');
         if (tagsFiltersContainer) {
             // Collect unique tags from *active* tasks
-            const uniqueTags = new Set();
+            const uniqueTags = new Map(); // Name -> Color
             activeTasks.forEach(task => {
-                if (task.tags) task.tags.forEach(tag => uniqueTags.add(tag));
+                if (task.tags) {
+                    task.tags.forEach(tag => {
+                        if (typeof tag === 'string') {
+                            if (!uniqueTags.has(tag)) uniqueTags.set(tag, '#e0e0e0'); // Default grey
+                        } else {
+                            if (!uniqueTags.has(tag.name)) uniqueTags.set(tag.name, tag.color);
+                        }
+                    });
+                }
             });
 
             tagsFiltersContainer.innerHTML = '';
 
-            uniqueTags.forEach(tag => {
+            uniqueTags.forEach((color, tagName) => {
                 const li = document.createElement('li');
                 const a = document.createElement('a');
                 a.href = '#';
                 a.className = 'filter-btn';
-                a.dataset.filter = `tag:${tag}`;
-                if (currentFilter === `tag:${tag}`) a.classList.add('active');
+                a.dataset.filter = `tag:${tagName}`;
+                if (currentFilter === `tag:${tagName}`) a.classList.add('active');
+
+                // Dynamic style for the dot
+                const dotStyle = `background-color: ${color}`;
 
                 a.innerHTML = `
-                    <span class="tag-color-dot"></span>
-                    <span class="link-text">${escapeHTML(tag)}</span>
+                    <span class="tag-color-dot" style="${dotStyle}"></span>
+                    <span class="link-text">${escapeHTML(tagName)}</span>
                 `;
 
                 li.appendChild(a);
@@ -510,12 +699,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // 4. Render
         const renderLogic = () => {
             tasksList.innerHTML = ''; // Clear the list
+
+            // Inject Empty Trash Button if in deleted view
+            if (currentFilter === 'deleted' && processedTasks.length > 0) {
+                const controlsDiv = document.createElement('div');
+                controlsDiv.className = 'trash-controls';
+                controlsDiv.innerHTML = `
+                    <p class="deleted-info-message">سيتم حذف المهام نهائياً بعد 30 يوماً.</p>
+                    <button id="empty-trash-btn" class="btn btn-danger-soft">إفراغ سلة المحذوفات (${processedTasks.length})</button>
+                    <hr>
+                 `;
+                tasksList.appendChild(controlsDiv);
+
+                // Add listener
+                setTimeout(() => {
+                    const btn = document.getElementById('empty-trash-btn');
+                    if (btn) btn.addEventListener('click', emptyTrash);
+                }, 0);
+            } else if (currentFilter === 'deleted') {
+                const deletedInfoMessage = `<p class="deleted-info-message">سيتم حذف المهام نهائياً بعد 30 يوماً من وجودها في سلة المحذوفات.</p>`;
+                tasksList.innerHTML = deletedInfoMessage;
+            }
+
             if (processedTasks.length === 0) {
-                // If in deleted view and it's empty, still show the info message.
-                if (currentFilter === 'deleted') {
-                    const deletedInfoMessage = `<p class="deleted-info-message">سيتم حذف المهام نهائياً بعد 30 يوماً من وجودها في سلة المحذوفات.</p>`;
-                    tasksList.innerHTML = deletedInfoMessage;
-                }
                 const emptyMessage = getEmptyStateMessage(allTasks.length, currentFilter, currentSearchTerm);
                 tasksList.innerHTML += `<p class="empty-state-message">${emptyMessage}</p>`;
                 return;
@@ -549,11 +755,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // If not filtering (e.g., initial load, adding task), render immediately
             renderLogic();
-        }
-
-        if (currentFilter === 'deleted' && processedTasks.length > 0) {
-            const deletedInfoMessage = `<p class="deleted-info-message">سيتم حذف المهام نهائياً بعد 30 يوماً من وجودها في سلة المحذوفات.</p>`;
-            tasksList.insertAdjacentHTML('afterbegin', deletedInfoMessage);
         }
     };
 
@@ -648,8 +849,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Tags HTML ---
         let tagsHTML = '';
         if (task.tags && task.tags.length > 0) {
-            tagsHTML = `<div class="task-tags">${task.tags.map(tag => `<span class="tag-chip">${escapeHTML(tag)}</span>`).join('')}</div>`;
+            tagsHTML = `<div class="task-tags">${task.tags.map(tag => {
+                const tagName = typeof tag === 'string' ? tag : tag.name;
+                const tagColor = typeof tag === 'string' ? '#e0e0e0' : tag.color;
+                // Add white text for better contrast if color is dark, or dynamic logic. 
+                // For now, simpler to assume users pick reasonable colors or we add a text-shadow.
+                const style = `background-color: ${tagColor}; color: white; text-shadow: 0 1px 1px rgba(0,0,0,0.2);`;
+                return `<span class="tag-chip" style="${style}">${escapeHTML(tagName)}</span>`;
+            }).join('')}</div>`;
         }
+
 
         // --- Subtasks HTML ---
         let subtasksHTML = '';
@@ -795,36 +1004,17 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
     };
 
-    const toggleTaskComplete = async (id) => {
-        if (!tasksCollection) return;
-        const taskRef = tasksCollection.doc(id);
-        const taskDoc = await taskRef.get();
-        const currentStatus = taskDoc.data().completed;
-        const newStatus = !currentStatus;
 
-        await taskRef.update({ completed: newStatus });
 
-        // Instead of re-rendering everything, just update the specific card
-        const cardToUpdate = tasksList.querySelector(`[data-id='${id}']`);
-        if (cardToUpdate) {
-            // This allows the CSS transition for the line-through to work.
-            cardToUpdate.classList.toggle('completed', newStatus);
 
-            // After a delay, re-render the whole list to move the task to the bottom.
-            setTimeout(() => {
-                renderTasks();
-            }, 1000); // 1 second delay
-        }
-    };
-
-    // --- Actions ---
     const handleFormSubmit = async (e) => {
         e.preventDefault();
 
         const titleInput = document.getElementById('task-title');
         const dateInput = document.getElementById('task-due-date').value;
         const timeInput = document.getElementById('task-due-time').value;
-        const tagsInput = document.getElementById('task-tags').value; // Get tags
+        // Tags are now handled via currentTags array (global/state) - need to update this logic later in this turn
+        // For now, removing recurrence first.
         const title = titleInput.value.trim();
 
         if (title === '') {
@@ -836,10 +1026,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ? `${dateInput}T${timeInput}`
             : dateInput;
 
-        // Process Tags
-        const tags = tagsInput.split(',').map(t => t.trim()).filter(t => t !== '');
-
         try {
+            // NOTE: tags are temporarily using the old input method until we update that in the next step.
+            // But we removed recurrence.
+
             if (editingTaskId) {
                 // --- Edit existing task ---
                 const taskRef = tasksCollection.doc(editingTaskId);
@@ -848,7 +1038,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     description: document.getElementById('task-desc').value.trim(),
                     dueDate: combinedDueDate,
                     priority: document.getElementById('task-priority').value,
-                    tags: tags,
+                    tags: currentTags, // Updated to use currentTags object array
                     subtasks: currentSubtasks
                 });
                 window.newlyAddedTaskId = editingTaskId;
@@ -863,7 +1053,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     priority: document.getElementById('task-priority').value,
                     completed: false,
                     isDeleted: false,
-                    tags: tags,
+                    tags: currentTags, // Updated to use currentTags object array
                     subtasks: currentSubtasks
                 };
                 const docRef = await tasksCollection.add(newTask);
@@ -880,7 +1070,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
 
-
     const toggleSubtaskComplete = async (taskId, subtaskIndex) => {
         if (!tasksCollection) return;
         const taskRef = tasksCollection.doc(taskId);
@@ -889,10 +1078,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (task.subtasks && task.subtasks[subtaskIndex]) {
             task.subtasks[subtaskIndex].completed = !task.subtasks[subtaskIndex].completed;
-            await taskRef.update({ subtasks: task.subtasks });
+            const allSubtasksCompleted = task.subtasks.every(sub => sub.completed);
+            const updates = { subtasks: task.subtasks };
 
-            // Update specific UI without full re-render
-            // We'll leave full re-render for now for simplicity or partial update
+            if (allSubtasksCompleted && !task.completed) {
+                updates.completed = true;
+            }
+            else if (!allSubtasksCompleted && task.completed) {
+                updates.completed = false;
+            }
+
+            await taskRef.update(updates);
             renderTasks();
         }
     };
@@ -917,14 +1113,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('task-priority').value = taskToEdit.priority;
 
-        // Populate Tags
-        document.getElementById('task-tags').value = taskToEdit.tags ? taskToEdit.tags.join(', ') : '';
+        // Tags and Subtasks Population
+        currentTags = taskToEdit.tags ? (Array.isArray(taskToEdit.tags) && typeof taskToEdit.tags[0] === 'object' ? [...taskToEdit.tags] : taskToEdit.tags.map(t => ({ name: t, color: '#e0e0e0' }))) : []; // Handle legacy
+        renderTagsPreview(); // We will implement this
 
-        // Populate Subtasks
         currentSubtasks = taskToEdit.subtasks ? [...taskToEdit.subtasks] : [];
         renderSubtasksPreview();
 
         modal.classList.remove('hidden');
+    };
+
+    const handleTaskCompletion = async (task, taskId) => {
+        // Simplified Logic: Just toggle completion. Recurrence is gone.
+        const taskRef = tasksCollection.doc(taskId);
+        const newStatus = !task.completed;
+        await taskRef.update({ completed: newStatus });
+
+        // Update UI logic
+        const cardToUpdate = tasksList.querySelector(`[data-id='${taskId}']`);
+        if (cardToUpdate) {
+            cardToUpdate.classList.toggle('completed', newStatus);
+            setTimeout(() => { renderTasks(); }, 1000);
+        }
+    };
+
+    const toggleTaskComplete = async (id) => {
+        if (!tasksCollection) return;
+        const taskRef = tasksCollection.doc(id);
+        const taskDoc = await taskRef.get();
+        const task = taskDoc.data();
+
+        await handleTaskCompletion(task, id);
     };
 
     // --- Filtering and Sorting ---
@@ -1078,6 +1297,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         priority: taskData.priority || 'normal',
                         completed: taskData.completed || false,
                         isDeleted: false,
+                        recurrence: 'none',
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     });
                 }
@@ -1107,8 +1327,308 @@ document.addEventListener('DOMContentLoaded', () => {
         return p.innerHTML;
     };
 
+
+
+    // --- Pomodoro Timer Logic ---
+    let timerInterval;
+    let timeLeft = 25 * 60; // Default 25 minutes
+    let isTimerRunning = false;
+
+    // Elements
+    const pomodoroWidget = document.getElementById('pomodoro-widget');
+    const pomodoroToggleBtn = document.getElementById('pomodoro-toggle-btn');
+    const closePomodoroBtn = document.getElementById('close-pomodoro');
+    const minimizePomodoroBtn = document.getElementById('minimize-pomodoro');
+    const pomodoroMinimized = document.getElementById('pomodoro-minimized');
+    const miniTimerDisplay = document.getElementById('mini-timer-display');
+
+    const timerDisplay = document.getElementById('pomodoro-timer');
+    const startBtn = document.getElementById('start-timer-btn');
+    const pauseBtn = document.getElementById('pause-timer-btn');
+    const resetBtn = document.getElementById('reset-timer-btn');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+
+    // UI Logic (Toggle, Minimize, Drag)
+    pomodoroToggleBtn.addEventListener('click', () => {
+        pomodoroWidget.classList.toggle('hidden');
+    });
+
+    closePomodoroBtn.addEventListener('click', () => {
+        pomodoroWidget.classList.add('hidden');
+    });
+
+    minimizePomodoroBtn.addEventListener('click', () => {
+        pomodoroWidget.classList.toggle('minimized');
+        minimizePomodoroBtn.textContent = pomodoroWidget.classList.contains('minimized') ? '□' : '_';
+    });
+
+    pomodoroMinimized.addEventListener('click', () => {
+        pomodoroWidget.classList.remove('minimized');
+        minimizePomodoroBtn.textContent = '_';
+    });
+
+    // Draggable Logic
+    const dragHandle = pomodoroWidget.querySelector('.drag-handle');
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+
+    dragHandle.addEventListener('mousedown', dragStart);
+    document.addEventListener('mouseup', dragEnd);
+    document.addEventListener('mousemove', drag);
+
+    function dragStart(e) {
+        initialX = e.clientX - xOffset;
+        initialY = e.clientY - yOffset;
+
+        if (e.target === dragHandle) {
+            isDragging = true;
+        }
+    }
+
+    function dragEnd(e) {
+        initialX = currentX;
+        initialY = currentY;
+        isDragging = false;
+    }
+
+    function drag(e) {
+        if (isDragging) {
+            e.preventDefault();
+            currentX = e.clientX - initialX;
+            currentY = e.clientY - initialY;
+
+            xOffset = currentX;
+            yOffset = currentY;
+
+            setTranslate(currentX, currentY, pomodoroWidget);
+        }
+    }
+
+    function setTranslate(xPos, yPos, el) {
+        el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0)`;
+    }
+
+    // Timer Logic
+    const updateDisplay = () => {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+        timerDisplay.textContent = timeString;
+        miniTimerDisplay.textContent = timeString;
+
+        // Update browser title logic preserved
+        if (isTimerRunning) {
+            document.title = `${timeString} - 🍅`;
+        } else {
+            document.title = 'قائمة المهام - TaskMaster';
+        }
+    };
+
+    // Toggle Logic
+    const toggleBtn = document.getElementById('toggle-timer-btn');
+
+    const updateToggleButton = () => {
+        toggleBtn.textContent = isTimerRunning ? '⏸' : '▶';
+        toggleBtn.title = isTimerRunning ? 'إيقاف مؤقت' : 'تشغيل';
+        // Optional: formatting changes if needed
+    };
+
+    const toggleTimer = () => {
+        if (isTimerRunning) {
+            // Pause
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+        } else {
+            // Start
+            isTimerRunning = true;
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateDisplay();
+                } else {
+                    clearInterval(timerInterval);
+                    isTimerRunning = false;
+                    updateToggleButton();
+                    // Play sound or notification here
+                    alert('انتهى الوقت! خذ قسطاً من الراحة.');
+                    document.title = 'انتهى الوقت! - TaskMaster';
+                }
+            }, 1000);
+        }
+        updateToggleButton();
+    };
+
+
+    const resetTimer = () => {
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        // Reset to currently selected mode
+        const activeMode = document.querySelector('.mode-btn.active');
+        timeLeft = parseInt(activeMode.dataset.time) * 60;
+        updateDisplay();
+        updateToggleButton();
+    };
+
+    toggleBtn.addEventListener('click', toggleTimer);
+    resetBtn.addEventListener('click', resetTimer);
+
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            modeBtns.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            updateToggleButton(); // Ensure button shows 'Play'
+
+            timeLeft = parseInt(e.target.dataset.time) * 60;
+            updateDisplay();
+        });
+    });
+
+
     // --- Initial Load ---
     taskForm.addEventListener('submit', handleFormSubmit);
-    applySettingsFromCache(); // Apply cached settings immediately on load to prevent flash
-    // The rest of the app initialization is handled by the onAuthStateChanged listener
+
+    // Add Tag Button Listener
+    const addTagBtnDOM = document.getElementById('add-tag-btn');
+    if (addTagBtnDOM) {
+        addTagBtnDOM.addEventListener('click', handleAddTag);
+    }
+
+    // --- Tour / Onboarding Logic ---
+    // --- Tour / Onboarding Logic ---
+    // --- Tour / Onboarding Logic ---
+    window.startTour = () => {
+        const tourOverlay = document.getElementById('tour-overlay');
+        const step1 = document.getElementById('tour-step-1');
+        const step2 = document.getElementById('tour-step-2');
+        const step3 = document.getElementById('tour-step-3'); // New Step 3
+        const fab = document.querySelector('.fab');
+        const sidebar = document.getElementById('sidebar');
+        const accountMenuContainer = document.querySelector('.account-menu-container'); // To highlight account button
+        const nextBtn1 = document.getElementById('tour-next-1');
+        const nextBtn2 = document.getElementById('tour-next-2'); // New Next Button
+        const addTaskModal = document.getElementById('add-task-modal');
+
+        if (!tourOverlay || !fab || !sidebar) return;
+
+        // Reset state
+        tourOverlay.classList.remove('hidden');
+        step1.classList.remove('hidden');
+        step2.classList.add('hidden');
+        if (step3) step3.classList.add('hidden');
+
+        fab.classList.add('tour-highlight-fab');
+        sidebar.classList.remove('tour-highlight-sidebar');
+        if (accountMenuContainer) accountMenuContainer.classList.remove('tour-highlight-fab');
+
+        // Transitions using Arrow Functions for Reusability
+        const transitionToStep2 = () => {
+            fab.removeEventListener('click', onTourFabClick);
+            step1.classList.add('hidden');
+            fab.classList.remove('tour-highlight-fab');
+            step2.classList.remove('hidden');
+            sidebar.classList.add('tour-highlight-sidebar');
+        };
+
+        const transitionToStep3 = () => {
+            step2.classList.add('hidden');
+            if (step3) {
+                step3.classList.remove('hidden');
+                if (accountMenuContainer) {
+                    accountMenuContainer.classList.add('tour-highlight-element');
+                }
+            } else {
+                endTour();
+            }
+        };
+
+        const onTourFabClick = () => {
+            tourOverlay.classList.add('hidden');
+            fab.classList.remove('tour-highlight-fab');
+
+            const checkModalClosed = setInterval(() => {
+                if (addTaskModal.classList.contains('hidden')) {
+                    clearInterval(checkModalClosed);
+                    // Instead of reshowing step 1 then step 2 manually, just go to Step 2 directly
+                    // But wait, the original logic showed Step 1 briefly? No, it hid Step 1 THEN removed overlay.
+                    // Recovering from modal closing -> Show overlay & Step 2
+                    tourOverlay.classList.remove('hidden');
+                    step1.classList.add('hidden'); // Ensure step 1 is hidden
+                    step2.classList.remove('hidden');
+                    sidebar.classList.add('tour-highlight-sidebar');
+                }
+            }, 500);
+            fab.removeEventListener('click', onTourFabClick);
+        };
+        fab.addEventListener('click', onTourFabClick);
+
+        // Button Listeners
+        nextBtn1.onclick = (e) => { e.stopPropagation(); transitionToStep2(); };
+        if (nextBtn2) {
+            nextBtn2.onclick = (e) => { e.stopPropagation(); transitionToStep3(); };
+        }
+
+        // Overlay Click Listener
+        tourOverlay.onclick = (e) => {
+            // Only proceed if clicking the background (overlay or step container), not buttons/text
+            // Checking if target is one of the containers that covers the screen
+            if (e.target.id === 'tour-overlay' || e.target.classList.contains('tour-step')) {
+                if (!step1.classList.contains('hidden')) {
+                    transitionToStep2();
+                } else if (!step2.classList.contains('hidden')) {
+                    transitionToStep3();
+                } else if (step3 && !step3.classList.contains('hidden')) {
+                    endTour();
+                }
+            }
+        };
+
+        // Finish Button (End Tour)
+        document.getElementById('tour-finish').onclick = (e) => {
+            e.stopPropagation();
+            endTour();
+        };
+
+        // Skip Buttons
+        document.querySelectorAll('.tour-skip-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                endTour();
+            };
+        });
+
+        function endTour() {
+            tourOverlay.classList.add('hidden');
+            step1.classList.add('hidden');
+            step2.classList.add('hidden');
+            if (step3) step3.classList.add('hidden');
+
+            fab.classList.remove('tour-highlight-fab');
+            sidebar.classList.remove('tour-highlight-sidebar');
+            if (accountMenuContainer) {
+                accountMenuContainer.classList.remove('tour-highlight-element');
+                accountMenuContainer.style.zIndex = '';
+                accountMenuContainer.style.backgroundColor = '';
+            }
+
+            localStorage.setItem('tour_v2_completed', 'true');
+            fab.removeEventListener('click', onTourFabClick);
+        }
+    };
+
+    // Check restart flag or first time
+    if (localStorage.getItem('restart_tour_flag') === 'true') {
+        localStorage.removeItem('restart_tour_flag');
+        setTimeout(window.startTour, 300);
+    } else if (localStorage.getItem('tour_v2_completed') !== 'true') {
+        setTimeout(window.startTour, 1000);
+    }
 });

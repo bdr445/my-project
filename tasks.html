@@ -89,6 +89,8 @@
                     <!-- Tags will be dynamically added here -->
                 </ul>
             </nav>
+
+
             <nav class="sidebar-footer">
                 <ul>
                     <li><a href="#" class="filter-btn" data-filter="deleted">
@@ -189,8 +191,20 @@
                 </select>
 
                 <!-- Tags Input -->
-                <label for="task-tags">الوسوم (افصل بينها بفاصلة)</label>
-                <input type="text" id="task-tags" placeholder="مثال: عمل, دراسة, مشروع...">
+                <label>الوسوم (مع الألوان)</label>
+                <div class="tag-input-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="new-tag-name" placeholder="اسم الوسم" style="flex: 1;" list="available-tags">
+                    <datalist id="available-tags"></datalist>
+                    <input type="color" id="new-tag-color" value="#0078d4"
+                        style="width: 50px; height: 100%; border: none; background: none; cursor: pointer;">
+                    <button type="button" id="add-tag-btn" class="btn btn-secondary" style="width: auto;">+</button>
+                </div>
+                <div id="tag-hint-message" class="tag-hint hidden">💡 تلميح: لا تنس الضغط على زر (+) لإدراج الوسم.</div>
+                <div id="selected-tags-container"
+                    style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;">
+                    <!-- Selected tags chips will appear here -->
+                </div>
+                <input type="hidden" id="task-tags"> <!-- Legacy/Hidden input just in case -->
 
                 <!-- Subtasks Section -->
                 <label>المهام الفرعية</label>
@@ -201,6 +215,8 @@
                 <ul id="subtasks-list-preview">
                     <!-- Subtasks preview will go here -->
                 </ul>
+
+
                 <button type="submit" id="modal-submit-btn" class="btn">إضافة المهمة</button>
             </form>
         </div>
@@ -237,6 +253,76 @@
             <div id="import-status" style="margin-top: 15px;"></div>
         </div>
     </div>
+
+    <!-- Tour Overlay -->
+    <div id="tour-overlay" class="tour-overlay hidden">
+        <div id="tour-step-1" class="tour-step hidden">
+            <div class="tour-tooltip" style="bottom: 100px; left: 20px;">
+                <p><strong>أضف مهامك من هنا!</strong><br>اضغط على هذا الزر لإنشاء مهمة جديدة.</p>
+                <div class="tour-actions">
+                    <button id="tour-next-1" class="btn btn-sm">التالي</button>
+                    <button class="tour-skip-btn">تخطي</button>
+                </div>
+                <div class="tour-arrow arrow-down-left"></div>
+            </div>
+        </div>
+        <div id="tour-step-2" class="tour-step hidden">
+            <div class="tour-tooltip" style="top: 150px; right: 350px;">
+                <p><strong>تتبع مهامك بسهولة</strong><br>يتم تصنيف مهامك هنا تلقائياً حسب الأولوية والحالة. تنقل بين
+                    الفئات لترى ما يهمك.</p>
+                <div class="tour-actions">
+                    <button id="tour-next-2" class="btn btn-sm">التالي</button>
+                    <button class="tour-skip-btn">تخطي</button>
+                </div>
+                <div class="tour-arrow arrow-right-top"
+                    style="top: 20px; right: -10px; border-width: 10px 0 10px 10px; border-color: transparent transparent transparent white;">
+                </div>
+            </div>
+        </div>
+        <div id="tour-step-3" class="tour-step hidden">
+            <div class="tour-tooltip" style="bottom: 15px; right: 350px;"> <!-- Fixed position for Account Button -->
+                <p><strong>الإعدادات والمزيد</strong><br>اضغط على هذا الزر للوصول إلى الإعدادات، تغيير المظهر، أو تسجيل
+                    الخروج.</p>
+                <div class="tour-actions">
+                    <button id="tour-finish" class="btn btn-sm">فهمت</button>
+                </div>
+                <!-- Arrow pointing to the right towards the account button -->
+                <div class="tour-arrow arrow-right-bottom"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Pomodoro Button (Moved outside sidebar) -->
+    <div id="pomodoro-widget" class="pomodoro-widget hidden">
+        <div class="pomodoro-header">
+            <span class="drag-handle"></span>
+            <button id="minimize-pomodoro" title="تصغير">_</button>
+            <button id="close-pomodoro" title="إغلاق">×</button>
+        </div>
+        <div class="pomodoro-body">
+            <div class="timer-display" id="pomodoro-timer">25:00</div>
+            <div class="timer-controls">
+                <button id="toggle-timer-btn" class="timer-btn" title="تشغيل/إيقاف">▶</button>
+                <button id="reset-timer-btn" class="timer-btn reset" title="إعادة تعيين">↺</button>
+            </div>
+            <div class="timer-mode">
+                <button class="mode-btn active" data-time="25">تركيز</button>
+                <button class="mode-btn" data-time="5">راحة</button>
+                <button class="mode-btn" data-time="15">طويلة</button>
+            </div>
+        </div>
+        <div class="pomodoro-minimized hidden" id="pomodoro-minimized">
+            <span id="mini-timer-display">25:00</span>
+        </div>
+    </div>
+
+    <button id="pomodoro-toggle-btn" class="pomodoro-toggle-btn" title="مؤقت التركيز">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+            <path d="M12 6v6l4 2" />
+        </svg>
+    </button>
 
 </body>
 
