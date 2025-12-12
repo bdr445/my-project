@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} value - The new value for the setting.
      */
     const updateSetting = async (key, value) => {
-        if (!key || value === undefined) return;
+        if (!key || value === undefined) return Promise.resolve();
 
         // 1. Update localStorage immediately for cross-page consistency.
         localStorage.setItem(key, value);
@@ -106,10 +106,13 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 await userDocRef.set({ settings: { [key]: value } }, { merge: true });
+                return Promise.resolve();
             } catch (error) {
                 console.error(`Failed to save setting '${key}' to Firestore:`, error);
+                return Promise.reject(error);
             }
         }
+        return Promise.resolve();
     };
 
     // --- Event Listeners ---
@@ -162,11 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (languageSelect) {
         languageSelect.addEventListener('change', (e) => {
             const lang = e.target.value;
-            updateSetting('language', lang);
-            // Reload page to apply language changes
-            setTimeout(() => {
-                window.location.reload();
-            }, 100);
+            // Wait for the setting to be saved before reloading the page.
+            updateSetting('language', lang).then(() => {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 100); // A small delay for a smoother feel
+            });
         });
     }
 

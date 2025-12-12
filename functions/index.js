@@ -1,32 +1,75 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+// functions/index.js
 
-const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
-const logger = require("firebase-functions/logger");
+const functions = require('firebase-functions');
+// نحتاج مكتبة node-fetch لإرسال طلب التحقق إلى Google.
+const fetch = require('node-fetch');
+const logger = require('firebase-functions/logger');
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10 });
+// إعداد خيارات عامة للدوال
+functions.setGlobalOptions({ maxInstances: 10 });
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+// 🚨🚨 إعدادات reCAPTCHA السرية 🚨🚨
+
+// جلب المفتاح السري باستخدام functions.config() (الطريقة القديمة التي ستتوقف في مارس 2026)
+// يجب تعيين هذا السر عبر الأمر: firebase functions:config:set recaptcha.secret="YOUR_SECRET_KEY"
+const RECAPTCHA_SECRET_KEY = functions.config().recaptcha?.secret;
+
+// معرف مشروعك في Firebase (كما هو)
+const PROJECT_ID = 'to-do-for-school-ee688';
+
+
+// ----------------------------------------------------------------------
+// دالة التحقق من reCAPTCHA Enterprise
+// ----------------------------------------------------------------------
+// هذه الدالة قابلة للاستدعاء من ملف login.js في المتصفح.
+exports.verifyRecaptcha = functions.https.onCall(async (data, context) => {
+
+    // 1. استلام البيانات من المتصفح
+    const { recaptchaToken, action } = data;
+
+    if (!RECAPTCHA_SECRET_KEY) {
+        logger.error("RECAPTCHA Secret Key is missing from configuration. Run 'firebase functions:config:set'.");
+        // إرجاع خطأ آمن للمتصفح
+        throw new functions.https.HttpsError('internal', 'Internal server configuration error.');
+    }
+
+    // 2. تجهيز الطلب لواجهة برمجة تطبيقات reCAPTCHA Enterprise
+    const recaptchaUrl = `https://recaptchaenterprise.googleapis.com/v1/projects/${PROJECT_ID}/assessments?key=${RECAPTCHA_SECRET_KEY}`;
+
+    try {
+        const recaptchaResponse = await fetch(recaptchaUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event: {
+                    token: recaptchaToken,
+                    siteKey: '6LdxliUsAAAAAOH1QPdoEBa4nYH1qips2gVvbXTt', // مفتاح الموقع العام
+                    expectedAction: action // 'login' أو 'signup'
+                }
+            })
+        });
+
+        const recaptchaResult = await recaptchaResponse.json();
+
+        // 3. تحليل النتيجة
+        const score = recaptchaResult.riskAnalysis?.score;
+        const isValid = recaptchaResult.tokenProperties?.valid;
+
+        // التحقق من صحة الرمز ومن أن درجة الأمان مقبولة (0.7 هو الحد الأدنى المقترح)
+        if (isValid && score >= 0.7) {
+            logger.info(`reCAPTCHA Success. Action: ${action}, Score: ${score}`);
+            return { success: true };
+        } else {
+            // تسجيل محاولة البوت المحظورة
+            logger.warn(`Blocked Bot Attempt! Action: ${action}, Score: ${score}, Reasons: ${recaptchaResult.riskAnalysis?.reasons?.join(', ')}`);
+            // إرجاع فشل لإيقاف عملية تسجيل الدخول في المتصفح
+            return { success: false, score: score };
+        }
+
+    } catch (error) {
+        logger.error("Error during reCAPTCHA verification:", error);
+        // إرجاع خطأ عام بدلاً من إظهار تفاصيل الخطأ للمستخدم
+        throw new functions.https.HttpsError('internal', 'Security check failed due to a server error.');
+    }
+});

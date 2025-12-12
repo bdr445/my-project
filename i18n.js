@@ -81,6 +81,29 @@
                 language: 'اللغة',
                 language_note: 'اختر لغتك المفضلة.',
                 back_to_tasks: 'العودة للمهام'
+            },
+            pomodoro: {
+                toggle_button_tooltip: 'مؤقت التركيز',
+                timer_display_title: 'انتهى الوقت!',
+                timer_display_subtitle: 'حان وقت أخذ استراحة',
+                dismiss_alarm_button: 'إيقاف المنبه',
+                start_button_title: 'تشغيل',
+                pause_button_title: 'إيقاف مؤقت',
+                reset_button_title: 'إعادة تعيين',
+                mute_button_title: 'كتم الصوت',
+                unmute_button_title: 'تشغيل الصوت',
+                pomodoro_mode: 'تركيز',
+                short_break_mode: 'استراحة قصيرة',
+                long_break_mode: 'استراحة طويلة',
+                custom_mode: 'مخصص',
+                set_custom_timer_button: 'تطبيق'
+            },
+            tour: {
+                step1_title: 'مرحباً بك في TaskMaster!',
+                step1_text: 'لإضافة مهمة جديدة، انقر على هذا الزر.',
+                step2_text: 'هنا يمكنك تصفية مهامك حسب الفئة أو الأولوية.',
+                step3_text: 'ومن هنا يمكنك الوصول إلى الإعدادات أو تصدير مهامك.',
+                finish_button: 'إنهاء الجولة'
             }
         },
         en: {
@@ -163,6 +186,29 @@
                 language: 'Language',
                 language_note: 'Choose your preferred language.',
                 back_to_tasks: 'Back to tasks'
+            },
+            pomodoro: {
+                toggle_button_tooltip: 'Focus Timer',
+                timer_display_title: 'Time\'s Up!',
+                timer_display_subtitle: 'Time to take a break',
+                dismiss_alarm_button: 'Dismiss Alarm',
+                start_button_title: 'Start',
+                pause_button_title: 'Pause',
+                reset_button_title: 'Reset',
+                mute_button_title: 'Mute',
+                unmute_button_title: 'Unmute',
+                pomodoro_mode: 'Pomodoro',
+                short_break_mode: 'Short Break',
+                long_break_mode: 'Long Break',
+                custom_mode: 'Custom',
+                set_custom_timer_button: 'Set'
+            },
+            tour: {
+                step1_title: 'Welcome to TaskMaster!',
+                step1_text: 'To add a new task, click this button.',
+                step2_text: 'Here you can filter your tasks by category or priority.',
+                step3_text: 'And from here you can access settings or export your tasks.',
+                finish_button: 'Finish Tour'
             }
         }
     };
@@ -179,6 +225,8 @@
             if (!translations[lang]) return;
             localStorage.setItem('language', lang);
             I18N.applyDir(lang);
+            // إطلاق حدث مخصص لإعلام الصفحات بأن اللغة قد تغيرت
+            document.dispatchEvent(new CustomEvent('language-changed'));
         },
         applyDir(lang) {
             const dir = translations[lang]?.dir || 'rtl';
@@ -187,6 +235,30 @@
             document.body.classList.remove('lang-rtl', 'lang-ltr');
             document.body.classList.add(dir === 'rtl' ? 'lang-rtl' : 'lang-ltr');
         },
+        applyHome() {
+            const lang = I18N.get();
+            I18N.applyDir(lang);
+
+            const map = translations[lang].home;
+
+            // عنوان المتصفح
+            document.title = map.title;
+
+            const setText = (sel, val) => {
+                const el = document.querySelector(sel);
+                if (el) el.textContent = val;
+            };
+
+            setText('.title', map.title);
+            setText('.tagline', map.tagline);
+
+            const descEl = document.querySelector('.description');
+            if (descEl) descEl.textContent = map.desc;
+
+            const btn = document.querySelector('.btn');
+            if (btn) btn.textContent = map.cta;
+        }
+
         applyHome() {
             const lang = I18N.get();
             I18N.applyDir(lang);
@@ -199,37 +271,7 @@
             const btn = document.querySelector('.btn');
             if (btn) btn.textContent = map.cta;
         },
-        applyLogin() {
-            const lang = I18N.get();
-            I18N.applyDir(lang);
-            const t = (k) => I18N.t('login', k, lang);
-            const set = (sel, key) => { const el = document.querySelector(sel); if (el) el.textContent = key; };
-            set('form#login-form h1', t('login_title'));
-            set('form#login-form p', t('login_sub'));
-            set('label[for="login-email"]', t('email'));
-            set('label[for="login-password"]', t('password'));
-            const forgot = document.getElementById('forgot-password-link'); if (forgot) forgot.textContent = t('forgot');
-            const loginBtn = document.querySelector('#login-form .btn'); if (loginBtn) loginBtn.textContent = t('login_btn');
-            const separators = document.querySelectorAll('.separator span'); separators.forEach(s => s.textContent = t('or'));
-            const gLogin = document.getElementById('google-signin-btn-login'); if (gLogin) gLogin.textContent = t('google_login');
-            const loginSwitch = document.querySelector('#login-form .form-switch'); if (loginSwitch) loginSwitch.innerHTML = `${t('no_account')} <a href="#" id="show-signup">${t('goto_signup')}</a>`;
 
-            set('form#signup-form h1', t('signup_title'));
-            const signupP = document.querySelector('form#signup-form p'); if (signupP) signupP.textContent = t('signup_sub');
-            set('label[for="signup-email"]', t('email'));
-            set('label[for="signup-password"]', t('password'));
-            const signupBtn = document.querySelector('#signup-form .btn'); if (signupBtn) signupBtn.textContent = t('signup_btn');
-            const gSignup = document.getElementById('google-signin-btn-signup'); if (gSignup) gSignup.textContent = t('google_signup');
-            const signupSwitch = document.querySelector('#signup-form .form-switch'); if (signupSwitch) signupSwitch.innerHTML = `${t('have_account')} <a href="#" id="show-login">${t('goto_login')}</a>`;
-
-            set('form#reset-password-form h1', t('reset_title'));
-            const resetP = document.querySelector('form#reset-password-form p'); if (resetP) resetP.textContent = t('reset_sub');
-            set('label[for="reset-email"]', t('email'));
-            const resetBtn = document.querySelector('#reset-password-form .btn'); if (resetBtn) resetBtn.textContent = t('reset_btn');
-            const backLink = document.getElementById('back-to-login'); if (backLink) backLink.textContent = t('back_to_login');
-
-            const guest = document.getElementById('guest-login-btn'); if (guest) guest.textContent = t('guest');
-        },
         applyTasks() {
             const lang = I18N.get();
             I18N.applyDir(lang);
@@ -320,4 +362,3 @@
 
     window.I18N = I18N;
 })();
-

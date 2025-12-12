@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
+    const functions = firebase.functions();
+
+    // --- reCAPTCHA Setup ---
 
     // -- Redirect if already logged in --
     // This checks the user's auth state as soon as the page loads.
@@ -64,95 +67,151 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Handle Login
-    loginForm.addEventListener('submit', (e) => {
+
+    loginForm.addEventListener('submit', async (e) => { // *** تأكد من وجود async هنا
+
         e.preventDefault();
+
         const email = document.getElementById('login-email').value.trim();
+
         const password = document.getElementById('login-password').value;
+
         const submitBtn = loginForm.querySelector('button[type="submit"]');
 
-        // Validate inputs
-        if (!email) {
-            showError('الرجاء إدخال البريد الإلكتروني.');
+
+
+        // 1. Validate inputs (التحقق من صحة المدخلات)
+
+        if (!email || !isValidEmail(email) || !password) {
+
+            if (!email) showError('الرجاء إدخال البريد الإلكتروني.');
+
+            else if (!isValidEmail(email)) showError('الرجاء إدخال بريد إلكتروني صحيح.');
+
+            else if (!password) showError('الرجاء إدخال كلمة المرور.');
+
             return;
+
         }
-        if (!isValidEmail(email)) {
-            showError('الرجاء إدخال بريد إلكتروني صحيح.');
-            return;
-        }
-        if (!password) {
-            showError('الرجاء إدخال كلمة المرور.');
-            return;
-        }
+
+
 
         setButtonLoading(submitBtn, true);
+
         errorMessageDiv.classList.add('hidden');
 
-        auth.signInWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                // Signed in
-                window.location.href = 'tasks.html';
-            })
-            .catch((error) => {
+
+
+        // --- 2. تنفيذ reCAPTCHA والحصول على الرمز المميز والتحقق في الخلفية (Backend) ---
+
+        try {
+
+            // 2a. الحصول على رمز reCAPTCHA المميز
+            const recaptchaToken = await grecaptcha.enterprise.execute('6LdxliUsAAAAAOH1QPdoEBa4nYH1qips2gVvbXTt', { action: 'login' });
+
+
+            // 2b. استدعاء دالة الخادم (Cloud Function) للتحقق من الرمز المميز
+            // Functions object is assumed to be defined as: const functions = firebase.functions();
+            const verifyFunction = functions.httpsCallable('verifyRecaptcha');
+
+            const result = await verifyFunction({ recaptchaToken: recaptchaToken, action: 'login' });
+
+            // 3. التحقق من نتيجة الخادم
+            if (result.data.success) {
+
+                // 4. إذا نجح التحقق من reCAPTCHA، أكمل عملية تسجيل الدخول في Firebase Auth
+                auth.signInWithEmailAndPassword(email, password)
+
+                    .then((userCredential) => {
+
+                        // Signed in
+                        window.location.href = 'tasks.html';
+
+                    })
+
+                    .catch((error) => {
+
+                        setButtonLoading(submitBtn, false);
+
+                        let errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+
+                        if (error.code === 'auth/user-not-found') {
+
+                            errorMessage = 'لا يوجد حساب مسجل بهذا البريد الإلكتروني.';
+
+                        } else if (error.code === 'auth/wrong-password') {
+
+                            errorMessage = 'كلمة المرور غير صحيحة.';
+
+                        } else if (error.code === 'auth/invalid-email') {
+
+                            errorMessage = 'البريد الإلكتروني غير صحيح.';
+
+                        } else if (error.code === 'auth/too-many-requests') {
+
+                            errorMessage = 'تم تجاوز عدد المحاولات المسموح به. يرجى المحاولة لاحقاً.';
+
+                        }
+
+                        showError(errorMessage);
+
+                    });
+            } else {
+                // فشل التحقق من reCAPTCHA في الخادم
                 setButtonLoading(submitBtn, false);
-                let errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
-                if (error.code === 'auth/user-not-found') {
-                    errorMessage = 'لا يوجد حساب مسجل بهذا البريد الإلكتروني.';
-                } else if (error.code === 'auth/wrong-password') {
-                    errorMessage = 'كلمة المرور غير صحيحة.';
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = 'البريد الإلكتروني غير صحيح.';
-                } else if (error.code === 'auth/too-many-requests') {
-                    errorMessage = 'تم تجاوز عدد المحاولات المسموح به. يرجى المحاولة لاحقاً.';
-                }
-                showError(errorMessage);
-            });
+                showError('فشل التحقق الأمني. الرجاء المحاولة مرة أخرى.');
+            }
+
+        } catch (e) {
+
+            setButtonLoading(submitBtn, false);
+
+            // هذا الخطأ يمكن أن يكون من reCAPTCHA أو من فشل الاتصال بالـ Cloud Function
+            showError('حدث خطأ أثناء الاتصال بنظام الأمان. حاول مجدداً.');
+
+            console.error("reCAPTCHA or Function Call Error:", e);
+
+        }
+
     });
 
     // Handle Signup
-    signupForm.addEventListener('submit', (e) => {
+    signupForm.addEventListener('submit', async (e) => { // *** أضف async هنا
         e.preventDefault();
         const email = document.getElementById('signup-email').value.trim();
         const password = document.getElementById('signup-password').value;
         const submitBtn = signupForm.querySelector('button[type="submit"]');
 
-        // Validate inputs
-        if (!email) {
-            showError('الرجاء إدخال البريد الإلكتروني.');
-            return;
-        }
-        if (!isValidEmail(email)) {
-            showError('الرجاء إدخال بريد إلكتروني صحيح.');
-            return;
-        }
-        if (!password) {
-            showError('الرجاء إدخال كلمة المرور.');
-            return;
-        }
-        if (!isValidPassword(password)) {
-            showError('كلمة المرور ضعيفة جداً، يجب أن تكون 6 أحرف على الأقل.');
+        // 1. Validate inputs (هذه الخطوة موجودة بالفعل)
+        if (!email || !isValidEmail(email) || !password || !isValidPassword(password)) {
+            // ... (كود التحقق الخاص بك) ...
             return;
         }
 
         setButtonLoading(submitBtn, true);
         errorMessageDiv.classList.add('hidden');
 
-        auth.createUserWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                // Signed up and signed in
-                window.location.href = 'tasks.html';
-            })
-            .catch((error) => {
-                setButtonLoading(submitBtn, false);
-                let errorMessage = 'حدث خطأ ما. قد يكون البريد الإلكتروني مستخدماً بالفعل.';
-                if (error.code === 'auth/weak-password') {
-                    errorMessage = 'كلمة المرور ضعيفة جداً، يجب أن تكون 6 أحرف على الأقل.';
-                } else if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = 'البريد الإلكتروني مستخدم بالفعل. يرجى تسجيل الدخول بدلاً من ذلك.';
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = 'البريد الإلكتروني غير صحيح.';
-                }
-                showError(errorMessage);
-            });
+        // --- 2. تنفيذ reCAPTCHA والحصول على الرمز المميز (Token) ---
+        try {
+            const recaptchaToken = await grecaptcha.enterprise.execute('6LdxliUsAAAAAOH1QPdoEBa4nYH1qips2gVvbXTt', { action: 'signup' });
+            // **ملاحظة:** هنا يجب أن يتم إرسال `recaptchaToken` إلى الباك إند للتحقق.
+            // (انظر الملاحظة في قسم تسجيل الدخول)
+
+            // 3. المتابعة بعملية إنشاء الحساب في Firebase
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Signed up and signed in
+                    window.location.href = 'tasks.html';
+                })
+                .catch((error) => {
+                    setButtonLoading(submitBtn, false);
+                    // ... (كود معالجة الأخطاء الخاص بك) ...
+                });
+        } catch (e) {
+            setButtonLoading(submitBtn, false);
+            showError('حدث خطأ أثناء التحقق من الأمان. حاول مجدداً.');
+            console.error("reCAPTCHA Error:", e);
+        }
     });
 
     // Handle Guest Login

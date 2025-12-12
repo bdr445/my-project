@@ -76,9 +76,18 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (window.I18N) {
-                I18N.applyLogin();
-            }
+            // دالة لتطبيق الترجمة
+            const applyTranslations = () => {
+                if (window.I18N) {
+                    I18N.applyLogin();
+                }
+            };
+
+            // تطبيق الترجمة عند تحميل الصفحة لأول مرة
+            applyTranslations();
+
+            // الاستماع لحدث تغيير اللغة لإعادة تطبيق الترجمة
+            document.addEventListener('language-changed', applyTranslations);
         });
     </script>
 </body>
