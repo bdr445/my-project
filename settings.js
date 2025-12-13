@@ -1,17 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Firebase Setup (copied from script.js for settings page context) ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyBHc4QygGxRb8HNQSL3S4eo9QcRCYPBDLQ",
-        authDomain: "to-do-for-school-ee688.firebaseapp.com",
-        projectId: "to-do-for-school-ee688",
-        storageBucket: "to-do-for-school-ee688.appspot.com",
-        messagingSenderId: "890456526492",
-        appId: "1:890456526492:web:30ba2e598b5df8be4b6759",
-        measurementId: "G-LT1ZCLB5E5"
-    };
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
+    // --- Firebase Setup ---
+    // Firebase instances are now globally available from firebase-init.js
     const auth = firebase.auth();
     const db = firebase.firestore();
 
@@ -21,13 +10,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const customBgInput = document.getElementById('custom-bg-input');
     const customBgStatus = document.getElementById('custom-bg-status');
     const languageSelect = document.getElementById('language-select');
+    const pageBlocker = document.getElementById('page-blocker');
 
     let currentUser = null;
+
+    // This function applies settings from localStorage immediately to prevent FOUC.
+    const applySettingsFromCache = () => {
+        const language = localStorage.getItem('language') || 'ar';
+        if (window.I18N) {
+            I18N.set(language);
+            I18N.applySettingsPage();
+        }
+
+        // Unblock the page view now that styles are applied
+        if (pageBlocker) {
+            pageBlocker.style.opacity = '0';
+            setTimeout(() => pageBlocker.style.display = 'none', 200); // Remove from layout after transition
+        }
+    };
+
+    // Apply cached settings on script load
+    applySettingsFromCache();
 
     // --- Auth State ---
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
+            // Re-load settings from Firestore to ensure they are up-to-date
             loadAndApplySettings(user);
         } else {
             // If no user, redirect to login. Settings page requires a user.
@@ -52,11 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Use Firestore settings, or fallback to localStorage, or finally to default values.
         const primaryColor = settings.primaryColor || localStorage.getItem('primaryColor') || '#0078d4';
         const backgroundImage = settings.backgroundImage || localStorage.getItem('backgroundImage') || 'images/background.jpg';
-        const language = settings.language || localStorage.getItem('language') || 'ar';
-        if (window.I18N) {
-            I18N.set(language);
-            I18N.applySettingsPage();
-        }
+        const language = settings.language || localStorage.getItem('language') || 'ar'; // Language is already applied by applySettingsFromCache
 
         // Apply color
         document.documentElement.style.setProperty('--primary-color', primaryColor);
@@ -177,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const restartTourBtn = document.getElementById('restart-tour-btn');
     if (restartTourBtn) {
         restartTourBtn.addEventListener('click', () => {
-            if (confirm('هل تريد إعادة تشغيل الجولة التعريفية؟ سيتم نقلك إلى الصفحة الرئيسية.')) {
+            if (confirm(I18N.t('tour', 'restart_confirm'))) {
                 localStorage.setItem('restart_tour_flag', 'true');
                 localStorage.setItem('tour_v2_completed', 'false'); // Reset completion
                 window.location.href = 'tasks.html';

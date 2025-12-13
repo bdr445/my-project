@@ -80,9 +80,9 @@ header p {
 
 /* Sidebar */
 #sidebar {
-    width: 280px;
+    width: 220px;
     background-color: var(--card-background);
-    padding: 20px;
+    padding: 15px;
     border-left: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
@@ -137,7 +137,7 @@ header p {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .sidebar-header-content {
@@ -168,16 +168,19 @@ header p {
 }
 
 #sidebar h1 {
-    font-size: 1.5em;
+    font-size: 1.3em;
     color: var(--primary-color);
     margin: 0;
+    font-weight: 700;
 }
 
 #sidebar h2 {
-    font-size: 1em;
+    font-size: 0.85em;
     text-transform: uppercase;
     color: #999;
-    margin: 20px 0 10px;
+    margin: 15px 0 8px;
+    letter-spacing: 0.5px;
+    font-weight: 600;
 }
 
 #sidebar nav ul {
@@ -187,7 +190,7 @@ header p {
 }
 
 #sidebar nav a {
-    padding: 10px 15px;
+    padding: 8px 12px;
     text-decoration: none;
     color: var(--text-color);
     border-radius: 6px;
@@ -195,7 +198,8 @@ header p {
     transition: background-color 0.2s;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    font-size: 0.95em;
 }
 
 #sidebar nav a:hover {
@@ -252,8 +256,18 @@ header p {
     border-right: 1px solid var(--border-color);
 }
 
+.lang-rtl #sidebar {
+    border-right: none;
+    border-left: 1px solid var(--border-color);
+    order: 2;
+}
+
 .lang-ltr #sidebar.sidebar-collapsed {
     align-items: flex-start;
+}
+
+.lang-rtl #sidebar.sidebar-collapsed {
+    align-items: flex-end;
 }
 
 #sidebar.sidebar-collapsed .sidebar-header-content {
@@ -1970,7 +1984,7 @@ header p {
 
 /* Tooltip for the button */
 .pomodoro-toggle-btn::after {
-    content: "مؤقت التركيز";
+    content: attr(data-tooltip);
     position: absolute;
     left: 70px;
     /* Show to the right of the button since button is on left */
@@ -2035,7 +2049,7 @@ header p {
 
 /* FAB Tooltip */
 .fab::after {
-    content: "إضافة مهمة";
+    content: attr(data-tooltip);
     position: absolute;
     left: 70px;
     /* Right of the button */
@@ -2058,6 +2072,47 @@ header p {
     opacity: 1;
     /* Ensure no unexpected transforms */
     transform: translateY(-50%);
+
+    /* Positioning for FAB and Pomodoro toggle depending on language */
+    .lang-ltr .pomodoro-toggle-btn {
+        right: 20px;
+        left: auto;
+    }
+
+    .lang-rtl .pomodoro-toggle-btn {
+        left: 20px;
+        right: auto;
+    }
+
+    .lang-ltr .pomodoro-toggle-btn::after {
+        right: 70px;
+        left: auto;
+    }
+
+    .lang-rtl .pomodoro-toggle-btn::after {
+        left: 70px;
+        right: auto;
+    }
+
+    .lang-ltr .fab {
+        left: auto;
+        right: 30px;
+    }
+
+    .lang-rtl .fab {
+        left: 30px;
+        right: auto;
+    }
+
+    .lang-ltr .fab::after {
+        left: auto;
+        right: 70px;
+    }
+
+    .lang-rtl .fab::after {
+        left: 70px;
+        right: auto;
+    }
 }
 
 /* Widget Positioning */

@@ -8,9 +8,10 @@
     <link rel="stylesheet" href="style.css">
     <script src="i18n.js"></script>
     <!-- Firebase SDK (v9 compat) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-init.js" defer></script>
     <script src="script.js" defer></script>
 </head>
 
@@ -191,7 +192,7 @@
                 </select>
 
                 <!-- Tags Input -->
-                <label>الوسوم (مع الألوان)</label>
+                <label>الوسوم</label>
                 <div class="tag-input-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <input type="text" id="new-tag-name" placeholder="اسم الوسم" style="flex: 1;" list="available-tags">
                     <datalist id="available-tags"></datalist>
@@ -258,33 +259,29 @@
     <div id="tour-overlay" class="tour-overlay hidden">
         <div id="tour-step-1" class="tour-step hidden">
             <div class="tour-tooltip" style="bottom: 100px; left: 20px;">
-                <p><strong>أضف مهامك من هنا!</strong><br>اضغط على هذا الزر لإنشاء مهمة جديدة.</p>
+                <p></p>
                 <div class="tour-actions">
-                    <button id="tour-next-1" class="btn btn-sm">التالي</button>
-                    <button class="tour-skip-btn">تخطي</button>
+                    <button id="tour-next-1" class="btn btn-sm"></button>
+                    <button class="tour-skip-btn"></button>
                 </div>
                 <div class="tour-arrow arrow-down-left"></div>
             </div>
         </div>
         <div id="tour-step-2" class="tour-step hidden">
             <div class="tour-tooltip" style="top: 150px; right: 350px;">
-                <p><strong>تتبع مهامك بسهولة</strong><br>يتم تصنيف مهامك هنا تلقائياً حسب الأولوية والحالة. تنقل بين
-                    الفئات لترى ما يهمك.</p>
+                <p></p>
                 <div class="tour-actions">
-                    <button id="tour-next-2" class="btn btn-sm">التالي</button>
-                    <button class="tour-skip-btn">تخطي</button>
+                    <button id="tour-next-2" class="btn btn-sm"></button>
+                    <button class="tour-skip-btn"></button>
                 </div>
-                <div class="tour-arrow arrow-right-top"
-                    style="top: 20px; right: -10px; border-width: 10px 0 10px 10px; border-color: transparent transparent transparent white;">
-                </div>
+                <div class="tour-arrow arrow-right-top"></div>
             </div>
         </div>
         <div id="tour-step-3" class="tour-step hidden">
             <div class="tour-tooltip" style="bottom: 15px; right: 350px;"> <!-- Fixed position for Account Button -->
-                <p><strong>الإعدادات والمزيد</strong><br>اضغط على هذا الزر للوصول إلى الإعدادات، تغيير المظهر، أو تسجيل
-                    الخروج.</p>
+                <p></p>
                 <div class="tour-actions">
-                    <button id="tour-finish" class="btn btn-sm">فهمت</button>
+                    <button id="tour-finish" class="btn btn-sm"></button>
                 </div>
                 <!-- Arrow pointing to the right towards the account button -->
                 <div class="tour-arrow arrow-right-bottom"></div>

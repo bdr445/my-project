@@ -709,8 +709,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentFilter === 'deleted' && processedTasks.length > 0) {
                 const controlsDiv = document.createElement('div');
                 controlsDiv.className = 'trash-controls';
+                const retentionShort = (typeof I18N !== 'undefined') ? I18N.t('tasks', 'deleted_retention') : 'سيتم حذف المهام نهائياً بعد 30 يوماً.';
                 controlsDiv.innerHTML = `
-                    <p class="deleted-info-message">سيتم حذف المهام نهائياً بعد 30 يوماً.</p>
+                    <p class="deleted-info-message">${retentionShort}</p>
                     <button id="empty-trash-btn" class="btn btn-danger-soft">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                         إفراغ سلة المحذوفات (${processedTasks.length})
@@ -724,7 +725,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (btn) btn.addEventListener('click', emptyTrash);
                 }, 0);
             } else if (currentFilter === 'deleted') {
-                const deletedInfoMessage = `<p class="deleted-info-message">سيتم حذف المهام نهائياً بعد 30 يوماً من وجودها في سلة المحذوفات.</p>`;
+                const retentionFull = (typeof I18N !== 'undefined') ? I18N.t('tasks', 'deleted_retention') : 'سيتم حذف المهام نهائياً بعد 30 يوماً من وجودها في سلة المحذوفات.';
+                const deletedInfoMessage = `<p class="deleted-info-message">${retentionFull}</p>`;
                 tasksList.innerHTML = deletedInfoMessage;
             }
 
@@ -766,19 +768,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const getEmptyStateMessage = (totalTasksCount, filter, searchTerm) => {
+        const t = (k, fallback) => (typeof I18N !== 'undefined') ? I18N.t('tasks', k) : fallback;
         if (searchTerm) {
-            return 'هممم، لا توجد مهام بهذا الاسم. هل جربت كلمة بحث أخرى؟';
+            return t('empty_search', 'هممم، لا توجد مهام بهذا الاسم. هل جربت كلمة بحث أخرى؟');
         }
         if (filter === 'deleted') {
-            return 'سلة المحذوفات فارغة. عمل نظيف!';
+            return t('empty_generic', 'سلة المحذوفات فارغة. عمل نظيف!');
         }
         if (filter === 'all' && totalTasksCount === 0) {
-            return 'لا توجد مهام بعد. هيا أضف مهمتك الأولى من الزر أدناه!';
+            return t('empty_all', 'لا توجد مهام بعد. هيا أضف مهمتك الأولى من الزر أدناه!');
         }
         if (filter !== 'all') {
-            return 'رائع! لا توجد مهام في هذا القسم حالياً.';
+            return t('empty_section', 'رائع! لا توجد مهام في هذا القسم حالياً.');
         }
-        return 'يبدو أن هذا القسم فارغ. ربما تجرب فلترًا آخر؟';
+        return t('empty_generic', 'يبدو أن هذا القسم فارغ. ربما تجرب فلترًا آخر؟');
     };
 
     const checkForDueDates = (tasks) => {
@@ -2113,6 +2116,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!tourOverlay || !fab || !sidebar) return;
 
+        // --- Apply Translations to Tour Elements ---
+        const t = (key) => I18N.t('onboarding', key);
+        const setTourText = (selector, htmlContent) => {
+            const el = document.querySelector(selector);
+            if (el) el.innerHTML = htmlContent;
+        };
+
+        setTourText('#tour-step-1 p', `<strong>${t('step1_title')}</strong><br>${t('step1_text')}`);
+        setTourText('#tour-next-1', t('next'));
+        setTourText('#tour-step-1 .tour-skip-btn', t('skip'));
+
+        setTourText('#tour-step-2 p', `<strong>${t('step2_title')}</strong><br>${t('step2_text')}`);
+        setTourText('#tour-next-2', t('next'));
+        setTourText('#tour-step-2 .tour-skip-btn', t('skip'));
+
+        setTourText('#tour-step-3 p', `<strong>${t('step3_title')}</strong><br>${t('step3_text')}`);
+        setTourText('#tour-finish', t('got_it'));
+
+        // --- Dynamically Position Tooltips based on Language Direction ---
+        const lang = I18N.get();
+        const isRTL = lang === 'ar';
+
+        // Get sidebar width for accurate positioning
+        const sidebarWidth = document.getElementById('sidebar')?.offsetWidth || 300;
+        const tooltipOffset = sidebarWidth + 20; // 20px gap from sidebar
+
+        const tooltip1 = step1.querySelector('.tour-tooltip');
+        const arrow1 = step1.querySelector('.tour-arrow');
+        const tooltip2 = step2.querySelector('.tour-tooltip');
+        const arrow2 = step2.querySelector('.tour-arrow');
+        const tooltip3 = step3.querySelector('.tour-tooltip');
+        const arrow3 = step3.querySelector('.tour-arrow');
+
+        if (isRTL) {
+            // Step 1: Point to FAB on the bottom-left
+            tooltip1.style.left = '20px';
+            tooltip1.style.right = '';
+            arrow1.className = 'tour-arrow arrow-down-left';
+
+            // Step 2: Point to sidebar on the right
+            tooltip2.style.right = `${tooltipOffset}px`;
+            tooltip2.style.left = '';
+            arrow2.className = 'tour-arrow arrow-right-top';
+
+            // Step 3: Point to account menu on the right
+            tooltip3.style.right = `${tooltipOffset}px`;
+            tooltip3.style.left = '';
+            arrow3.className = 'tour-arrow arrow-right-bottom';
+        } else { // LTR
+            // Step 1: Point to FAB on the bottom-right
+            tooltip1.style.right = '20px';
+            tooltip1.style.left = '';
+            arrow1.className = 'tour-arrow arrow-down-right';
+
+            // Step 2: Point to sidebar on the left
+            tooltip2.style.left = `${tooltipOffset}px`;
+            tooltip2.style.right = '';
+            arrow2.className = 'tour-arrow arrow-left-top';
+
+            // Step 3: Point to account menu on the left
+            tooltip3.style.left = `${tooltipOffset}px`;
+            tooltip3.style.right = '';
+            arrow3.className = 'tour-arrow arrow-left-bottom';
+        }
         // Reset state
         tourOverlay.classList.remove('hidden');
         step1.classList.remove('hidden');

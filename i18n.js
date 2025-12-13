@@ -69,7 +69,16 @@
                 import_title: 'استيراد المهام من ملف CSV',
                 import_desc: 'اختر ملف CSV يحتوي على مهامك. يجب أن تكون الأعمدة بنفس ترتيب التصدير.',
                 import_btn: 'استيراد',
-                add_btn_title: 'إضافة مهمة'
+                add_btn_title: 'إضافة مهمة',
+                tags_label: 'الوسوم',
+                tag_name_ph: 'اسم الوسم',
+                tag_hint: '💡 تلميح: لا تنس الضغط على زر (+) لإدراج الوسم.',
+                empty_search: 'هممم، لا توجد مهام بهذا الاسم. هل جربت كلمة بحث أخرى؟',
+                empty_all: 'لا توجد مهام بعد. هيا أضف مهمتك الأولى من الزر أدناه!',
+                empty_section: 'رائع! لا توجد مهام في هذا القسم حالياً.',
+                empty_generic: 'يبدو أن هذا القسم فارغ. ربما تجرب فلترًا آخر؟'
+                ,
+                deleted_retention: 'و سيتم حذف المهام نهائياً بعد 30 يوماً من وجودها في سلة المحذوفات.'
             },
             settings: {
                 page_title: 'الإعدادات',
@@ -81,6 +90,23 @@
                 language: 'اللغة',
                 language_note: 'اختر لغتك المفضلة.',
                 back_to_tasks: 'العودة للمهام'
+            },
+            alarm: {
+                alarm_label: 'نغمة المنبه',
+                alarm_note: 'اختر نغمة المنبه التي تفضلها عند انتهاء المؤقت.',
+                gentle: 'منبه هادئ',
+                chime: 'نغمة ناعمة',
+                marimba: 'نغمة مرحة',
+                birdsong: 'تغريد طيور',
+                xylophone: 'نغمة متصاعدة',
+                harp: 'نغمة هادئة',
+                piano: 'نغمة بسيطة',
+                windchimes: 'أجراس هوائية',
+                bells: 'أجراس متكررة',
+                musicbox: 'نغمة هادئة ومتكررة',
+                flute: 'نغمة ناعمة مع اهتزاز',
+                cosmic: 'نغمة إثيرية',
+                classic: 'منبه كلاسيكي'
             },
             pomodoro: {
                 toggle_button_tooltip: 'مؤقت التركيز',
@@ -96,14 +122,31 @@
                 short_break_mode: 'استراحة قصيرة',
                 long_break_mode: 'استراحة طويلة',
                 custom_mode: 'مخصص',
-                set_custom_timer_button: 'تطبيق'
+                set_custom_timer_button: 'تطبيق',
+                minutes: 'دقيقة'
             },
             tour: {
+                tour_label: 'الجولة التعريفية',
+                restart_btn: 'بدء الجولة التعريفية من جديد',
+                restart_note: 'هل فاتك شيء؟ يمكنك إعادة تشغيل الجولة المساعدة.',
+                restart_confirm: 'هل تريد إعادة تشغيل الجولة التعريفية؟ سيتم نقلك إلى الصفحة الرئيسية.',
                 step1_title: 'مرحباً بك في TaskMaster!',
                 step1_text: 'لإضافة مهمة جديدة، انقر على هذا الزر.',
                 step2_text: 'هنا يمكنك تصفية مهامك حسب الفئة أو الأولوية.',
                 step3_text: 'ومن هنا يمكنك الوصول إلى الإعدادات أو تصدير مهامك.',
                 finish_button: 'إنهاء الجولة'
+            },
+            onboarding: {
+                step1_title: 'أضف مهامك من هنا!',
+                step1_text: 'اضغط على هذا الزر لإنشاء مهمة جديدة.',
+                step2_title: 'تتبع مهامك بسهولة',
+                step2_text: 'يتم تصنيف مهامك هنا تلقائياً حسب الأولوية والحالة. تنقل بين الفئات لترى ما يهمك.',
+                step3_title: 'الإعدادات والمزيد',
+                step3_text: 'اضغط على هذا الزر للوصول إلى الإعدادات، تغيير المظهر، أو تسجيل الخروج.',
+                next: 'التالي',
+                skip: 'تخطي',
+                and: 'و',
+                got_it: 'فهمت'
             }
         },
         en: {
@@ -174,7 +217,16 @@
                 import_title: 'Import tasks from CSV',
                 import_desc: 'Choose a CSV file with your tasks. Columns must match export order.',
                 import_btn: 'Import',
-                add_btn_title: 'Add task'
+                add_btn_title: 'Add task',
+                tags_label: 'Tags',
+                tag_name_ph: 'Tag name',
+                tag_hint: '💡 Tip: press (+) to add the tag.',
+                empty_search: 'Hmm, no tasks match that search. Try another term?',
+                empty_all: 'No tasks yet. Add your first task with the button below!',
+                empty_section: 'Great! There are no tasks in this section right now.',
+                empty_generic: 'This section looks empty. Try a different filter?'
+                ,
+                deleted_retention: 'Tasks will be permanently deleted 30 days after being moved to Trash.'
             },
             settings: {
                 page_title: 'Settings',
@@ -187,6 +239,23 @@
                 language_note: 'Choose your preferred language.',
                 back_to_tasks: 'Back to tasks'
             },
+            alarm: {
+                alarm_label: 'Alarm sound',
+                alarm_note: 'Choose your preferred alarm sound when the timer ends.',
+                gentle: 'Gentle',
+                chime: 'Chime',
+                marimba: 'Marimba',
+                birdsong: 'Birdsong',
+                xylophone: 'Xylophone',
+                harp: 'Harp',
+                piano: 'Piano',
+                windchimes: 'Wind Chimes',
+                bells: 'Bells',
+                musicbox: 'Music Box',
+                flute: 'Flute',
+                cosmic: 'Cosmic',
+                classic: 'Classic'
+            },
             pomodoro: {
                 toggle_button_tooltip: 'Focus Timer',
                 timer_display_title: 'Time\'s Up!',
@@ -198,22 +267,48 @@
                 mute_button_title: 'Mute',
                 unmute_button_title: 'Unmute',
                 pomodoro_mode: 'Pomodoro',
-                short_break_mode: 'Short Break',
-                long_break_mode: 'Long Break',
+                short_break_mode: 'Break',
+                long_break_mode: 'Custom',
                 custom_mode: 'Custom',
-                set_custom_timer_button: 'Set'
+                set_custom_timer_button: 'Set',
+                minutes: 'minute'
             },
             tour: {
+                tour_label: 'Tour',
+                restart_btn: 'Restart Tour',
+                restart_note: 'Missed something? You can restart the guided tour.',
+                restart_confirm: 'Do you want to restart the tour? You will be redirected to the main page.',
                 step1_title: 'Welcome to TaskMaster!',
                 step1_text: 'To add a new task, click this button.',
                 step2_text: 'Here you can filter your tasks by category or priority.',
                 step3_text: 'And from here you can access settings or export your tasks.',
                 finish_button: 'Finish Tour'
+            },
+            onboarding: {
+                step1_title: 'Add your tasks from here!',
+                step1_text: 'Press this button to create a new task.',
+                step2_title: 'Track your tasks easily',
+                step2_text: 'Your tasks are automatically categorized here by priority and status. Navigate between categories to see what matters to you.',
+                step3_title: 'Settings and more',
+                step3_text: 'Press this button to access settings, change the theme, or log out.',
+                next: 'Next',
+                skip: 'Skip',
+                and: 'and',
+                got_it: 'Got it'
             }
         }
     };
 
     const I18N = {
+        // Convert digits to Arabic-Indic digits when language is Arabic
+        localizeNumber(n, lang) {
+            const s = String(n);
+            if ((lang || I18N.get()) === 'ar') {
+                const map = { '0': '٠', '1': '١', '2': '٢', '3': '٣', '4': '٤', '5': '٥', '6': '٦', '7': '٧', '8': '٨', '9': '٩' };
+                return s.replace(/[0-9]/g, d => map[d]);
+            }
+            return s;
+        },
         t(page, key, lang) {
             const l = lang || I18N.get();
             return translations[l]?.[page]?.[key] || translations.ar[page][key] || key;
@@ -241,7 +336,16 @@
             const map = translations[lang].home;
             document.title = map.title;
             const setText = (sel, val) => { const el = document.querySelector(sel); if (el) el.textContent = val; };
-            setText('h1', map.title);
+            const h1 = document.querySelector('h1');
+            if (h1) {
+                if (lang === 'en') {
+                    // Split "Welcome to TaskMaster" into two lines: "Welcome to" on first line, "TaskMaster" on second
+                    h1.innerHTML = `Welcome to<br>TaskMaster`;
+                } else {
+                    // Arabic: split "مرحباً بك في TaskMaster" into "مرحباً بك في" and "TaskMaster"
+                    h1.innerHTML = `مرحباً بك في<br>TaskMaster`;
+                }
+            }
             setText('.title', map.title);
             setText('.tagline', map.tagline);
             const descEl = document.querySelector('.description');
@@ -293,20 +397,22 @@
         applyTasks() {
             const lang = I18N.get();
             I18N.applyDir(lang);
+            // Ensure body has tasks-page class for proper styling
+            document.body.classList.add('tasks-page');
             const t = (k) => I18N.t('tasks', k, lang);
             const q = (sel) => document.querySelector(sel);
-            q('.home-link')?.textContent = t('home_link');
-            q('nav h2')?.textContent = t('categories');
+            const _homeLink = q('.home-link'); if (_homeLink) _homeLink.textContent = t('home_link');
+            const _navH2 = q('nav h2'); if (_navH2) _navH2.textContent = t('categories');
             const setFilter = (selector, label) => { const el = q(selector + ' .link-text'); if (el) el.childNodes[0].nodeValue = label + ' '; };
             setFilter('[data-filter="all"]', t('all'));
             setFilter('[data-filter="urgent"]', t('urgent'));
             setFilter('[data-filter="important"]', t('important'));
             setFilter('[data-filter="normal"]', t('normal'));
             const trash = q('[data-filter="deleted"] .link-text'); if (trash) trash.textContent = t('deleted');
-            q('#settings-btn')?.textContent = t('settings');
-            q('#import-btn')?.textContent = t('import');
-            q('#export-btn')?.textContent = t('export');
-            q('#logout-btn')?.textContent = t('logout');
+            const _settingsBtn = q('#settings-btn'); if (_settingsBtn) _settingsBtn.textContent = t('settings');
+            const _importBtn = q('#import-btn'); if (_importBtn) _importBtn.textContent = t('import');
+            const _exportBtn = q('#export-btn'); if (_exportBtn) _exportBtn.textContent = t('export');
+            const _logoutBtn = q('#logout-btn'); if (_logoutBtn) _logoutBtn.textContent = t('logout');
             const greetMain = q('.user-greeting-text');
             if (greetMain) {
                 const name = (document.getElementById('user-name')?.textContent || '...');
@@ -327,14 +433,38 @@
                 if (btns[0]) btns[0].title = t('view_list');
                 if (btns[1]) btns[1].title = t('view_grid');
             }
+            // Pomodoro widget texts
+            try {
+                const p = (k) => I18N.t('pomodoro', k, lang);
+                const modeBtns = document.querySelectorAll('#pomodoro-widget .mode-btn');
+                if (modeBtns && modeBtns.length >= 3) {
+                    modeBtns[0].textContent = p('pomodoro_mode');
+                    modeBtns[1].textContent = p('short_break_mode');
+                    modeBtns[2].textContent = p('long_break_mode');
+                }
+                const customBtn = document.getElementById('set-custom-timer');
+                if (customBtn) customBtn.textContent = p('set_custom_timer_button');
+                const minutesLabel = document.querySelector('#custom-timer-input span');
+                if (minutesLabel) minutesLabel.textContent = p('minutes');
+                const customMinutes = document.getElementById('custom-minutes');
+                if (customMinutes) {
+                    // ensure placeholder reflects localized digits when appropriate
+                    customMinutes.placeholder = I18N.localizeNumber(customMinutes.value || customMinutes.placeholder || '25', lang);
+                }
+                // localize timer displays
+                const timerDisplay = document.getElementById('pomodoro-timer');
+                if (timerDisplay) timerDisplay.textContent = I18N.localizeNumber(timerDisplay.textContent || '25:00', lang);
+                const miniDisplay = document.getElementById('mini-timer-display');
+                if (miniDisplay) miniDisplay.textContent = I18N.localizeNumber(miniDisplay.textContent || '25:00', lang);
+            } catch (e) { }
             q('#add-task-btn')?.setAttribute('title', t('add_btn_title'));
             const modalTitle = q('#modal-title'); if (modalTitle) modalTitle.textContent = t('add_task');
             const submitBtn = q('#modal-submit-btn'); if (submitBtn) submitBtn.textContent = t('add_task_btn');
             const titleInput = q('#task-title'); if (titleInput) titleInput.placeholder = t('title_ph');
             const descInput = q('#task-desc'); if (descInput) descInput.placeholder = t('desc_ph');
-            q('label[for="task-due-date"]')?.textContent = t('due_date');
-            q('label[for="task-due-time"]')?.textContent = t('due_time');
-            q('label[for="task-priority"]')?.textContent = t('priority');
+            const _dueDateLabel = q('label[for="task-due-date"]'); if (_dueDateLabel) _dueDateLabel.textContent = t('due_date');
+            const _dueTimeLabel = q('label[for="task-due-time"]'); if (_dueTimeLabel) _dueTimeLabel.textContent = t('due_time');
+            const _priorityLabel = q('label[for="task-priority"]'); if (_priorityLabel) _priorityLabel.textContent = t('priority');
             const prioritySelect = q('#task-priority');
             if (prioritySelect) {
                 const opts = prioritySelect.querySelectorAll('option');
@@ -344,10 +474,29 @@
             }
             const delTitle = q('#confirm-delete-modal h2'); if (delTitle) delTitle.textContent = t('confirm_delete_title');
             const delText = q('#confirm-delete-modal p'); if (delText) delText.textContent = t('confirm_delete_text');
-            q('#cancel-delete-btn')?.textContent = t('cancel');
-            q('#confirm-delete-btn')?.textContent = t('delete');
-            q('#import-modal h2')?.textContent = t('import_title');
-            q('#import-modal p')?.textContent = t('import_desc');
+            const _cancelDelete = q('#cancel-delete-btn'); if (_cancelDelete) _cancelDelete.textContent = t('cancel');
+            const _confirmDelete = q('#confirm-delete-btn'); if (_confirmDelete) _confirmDelete.textContent = t('delete');
+            const _importModalH2 = q('#import-modal h2'); if (_importModalH2) _importModalH2.textContent = t('import_title');
+            const _importModalP = q('#import-modal p'); if (_importModalP) _importModalP.textContent = t('import_desc');
+            // Tags header in sidebar (second h2 inside nav)
+            try {
+                const navH2s = document.querySelectorAll('nav h2');
+                if (navH2s && navH2s.length > 1) navH2s[1].textContent = t('tags_label');
+            } catch (e) { }
+            // Tag input label inside modal (label immediately before .tag-input-group)
+            const tagInputGroup = document.querySelector('.tag-input-group');
+            if (tagInputGroup && tagInputGroup.previousElementSibling) tagInputGroup.previousElementSibling.textContent = t('tags_label');
+            const newTagInput = q('#new-tag-name'); if (newTagInput) newTagInput.placeholder = t('tag_name_ph');
+            const tagHint = q('#tag-hint-message'); if (tagHint) tagHint.textContent = t('tag_hint');
+
+            // Update FAB tooltip via data attribute (CSS uses attr())
+            const fab = q('.fab'); if (fab) fab.setAttribute('data-tooltip', t('add_btn_title'));
+
+            // Pomodoro toggle tooltip and title
+            const pomodoroToggle = q('#pomodoro-toggle-btn'); if (pomodoroToggle) {
+                pomodoroToggle.title = t('pomodoro', 'toggle_button_tooltip') || t('pomodoro', 'toggle_button_tooltip');
+                pomodoroToggle.setAttribute('data-tooltip', t('pomodoro', 'toggle_button_tooltip'));
+            }
             const importBtn = q('#import-form .btn'); if (importBtn) importBtn.textContent = t('import_btn');
         },
         applySettingsPage() {
@@ -368,6 +517,9 @@
                 const customNote = groups[2].querySelector('p');
                 if (customNote) customNote.textContent = t('custom_bg_note');
             }
+            // custom bg file input label
+            const customLabel = document.querySelector('label[for="custom-bg-input"]');
+            if (customLabel) customLabel.textContent = t('custom_bg_label');
             if (groups[3]) {
                 groups[3].querySelector('h2').textContent = t('language');
                 const langNote = groups[3].querySelector('p');
@@ -375,8 +527,122 @@
             }
             const backBtn = document.querySelector('.btn[href="tasks.html"]'); if (backBtn) backBtn.textContent = t('back_to_tasks');
             const langSelect = document.getElementById('language-select'); if (langSelect) langSelect.value = lang;
+
+            // Tour section (usually groups[4])
+            try {
+                const tourGroup = groups[4];
+                if (tourGroup) {
+                    tourGroup.querySelector('h2').textContent = I18N.t('tour', 'tour_label', lang) || tourGroup.querySelector('h2').textContent;
+                    const restartBtn = tourGroup.querySelector('#restart-tour-btn');
+                    if (restartBtn) restartBtn.textContent = I18N.t('tour', 'restart_btn', lang);
+                    const restartNote = tourGroup.querySelector('p');
+                    if (restartNote) restartNote.textContent = I18N.t('tour', 'restart_note', lang);
+                }
+            } catch (e) { }
+
+            // Alarm section (usually last)
+            try {
+                const alarmGroup = groups[5];
+                if (alarmGroup) {
+                    alarmGroup.querySelector('h2').textContent = I18N.t('alarm', 'alarm_label', lang) || alarmGroup.querySelector('h2').textContent;
+                    const alarmNote = alarmGroup.querySelector('p');
+                    if (alarmNote) alarmNote.textContent = I18N.t('alarm', 'alarm_note', lang);
+                    const alarmSelect = document.getElementById('alarm-sound-select');
+                    if (alarmSelect) {
+                        Array.from(alarmSelect.options).forEach(opt => {
+                            const key = opt.value;
+                            const label = I18N.t('alarm', key, lang);
+                            if (label) opt.textContent = label;
+                        });
+                    }
+                }
+            } catch (e) { }
         }
     };
+    // Apply translations for current page when language changes
+    document.addEventListener('language-changed', () => {
+        try {
+            // First, apply direction immediately
+            const lang = I18N.get();
+            I18N.applyDir(lang);
+
+            const body = document.body || {};
+            if (body.classList && body.classList.contains('home-page')) {
+                I18N.applyHome();
+            } else if (body.classList && body.classList.contains('settings-page')) {
+                I18N.applySettingsPage();
+            } else if (body.classList && body.classList.contains('login-page')) {
+                I18N.applyLogin();
+            } else {
+                // Fallback: try applying tasks/home where applicable
+                if (typeof I18N.applyTasks === 'function') I18N.applyTasks();
+                if (typeof I18N.applyHome === 'function') I18N.applyHome();
+            }
+
+            // Additionally, force-position floating controls in case CSS rules didn't apply
+            const dir = translations[lang]?.dir || document.documentElement.dir || 'rtl';
+            // Pomodoro toggle button
+            const pomodoroBtn = document.getElementById('pomodoro-toggle-btn');
+            if (pomodoroBtn) {
+                if (dir === 'ltr') {
+                    // place pomodoro above the FAB on the right side (move slightly left)
+                    // FAB: right ~30px; increase to 40px to shift pomodoro 10px left
+                    pomodoroBtn.style.right = '32px';
+                    pomodoroBtn.style.left = 'auto';
+                    pomodoroBtn.style.bottom = '90px';
+                } else {
+                    // RTL: mirror placement above the FAB on the left (move slightly left)
+                    // increase left to shift toward center
+                    pomodoroBtn.style.left = '32px';
+                    pomodoroBtn.style.right = 'auto';
+                    pomodoroBtn.style.bottom = '90px';
+                }
+                pomodoroBtn.style.zIndex = '1001';
+            }
+            // FAB (Add task) - let CSS handle positioning via .lang-ltr and .lang-rtl classes
+            // Remove any inline styles that might interfere with CSS rules
+            const fab = document.querySelector('.fab');
+            if (fab) {
+                fab.style.right = '';
+                fab.style.left = '';
+            }
+            // Pomodoro timer widget
+            const timerWidget = document.getElementById('pomodoro-widget');
+            if (timerWidget) {
+                if (dir === 'ltr') {
+                    // English (LTR): position on the right
+                    timerWidget.style.right = '0';
+                    timerWidget.style.left = 'auto';
+                } else {
+                    // Arabic (RTL): position on the left
+                    timerWidget.style.left = '0';
+                    timerWidget.style.right = 'auto';
+                }
+            }
+        } catch (e) {
+            // swallow errors to avoid breaking pages
+            console.debug('I18N language-changed handler error', e);
+        }
+    });
+
+    // Initialize pomodoro widget to be expanded on button click
+    const setupPomodoroClickExpand = () => {
+        const pomodoroToggle = document.getElementById('pomodoro-toggle-btn');
+        if (pomodoroToggle) {
+            pomodoroToggle.addEventListener('click', () => {
+                const timerWidget = document.getElementById('pomodoro-widget');
+                if (timerWidget && !timerWidget.classList.contains('hidden')) {
+                    // When widget becomes visible (not hidden), also remove minimized state
+                    timerWidget.classList.remove('minimized');
+                }
+            });
+        }
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupPomodoroClickExpand);
+    } else {
+        setupPomodoroClickExpand();
+    }
 
     window.I18N = I18N;
 })();

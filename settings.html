@@ -12,10 +12,14 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-init.js" defer></script>
     <script src="settings.js" defer></script>
 </head>
 
 <body class="settings-page">
+
+    <!-- This element blocks the page view until settings are applied to prevent FOUC -->
+    <div id="page-blocker"></div>
 
     <main>
         <div class="settings-container">
