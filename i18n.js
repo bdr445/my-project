@@ -238,38 +238,56 @@
         applyHome() {
             const lang = I18N.get();
             I18N.applyDir(lang);
-
             const map = translations[lang].home;
-
-            // عنوان المتصفح
             document.title = map.title;
-
-            const setText = (sel, val) => {
-                const el = document.querySelector(sel);
-                if (el) el.textContent = val;
-            };
-
-            setText('.title', map.title);
-            setText('.tagline', map.tagline);
-
-            const descEl = document.querySelector('.description');
-            if (descEl) descEl.textContent = map.desc;
-
-            const btn = document.querySelector('.btn');
-            if (btn) btn.textContent = map.cta;
-        }
-
-        applyHome() {
-            const lang = I18N.get();
-            I18N.applyDir(lang);
-            const map = translations[lang].home;
             const setText = (sel, val) => { const el = document.querySelector(sel); if (el) el.textContent = val; };
             setText('h1', map.title);
+            setText('.title', map.title);
             setText('.tagline', map.tagline);
             const descEl = document.querySelector('.description');
             if (descEl) descEl.textContent = map.desc;
             const btn = document.querySelector('.btn');
             if (btn) btn.textContent = map.cta;
+        },
+
+        applyLogin() {
+            const lang = I18N.get();
+            I18N.applyDir(lang);
+            const t = (k) => I18N.t('login', k, lang);
+            const set = (sel, val) => { const el = document.querySelector(sel); if (el) el.textContent = val; };
+
+            set('#login-form h1', t('login_title'));
+            set('#login-form p', t('login_sub'));
+            set('label[for="login-email"]', t('email'));
+            set('label[for="login-password"]', t('password'));
+            const forgot = document.getElementById('forgot-password-link'); if (forgot) forgot.textContent = t('forgot');
+            const loginBtn = document.querySelector('#login-form .btn'); if (loginBtn) loginBtn.textContent = t('login_btn');
+            const sep = document.querySelector('#login-form .separator span'); if (sep) sep.textContent = t('or');
+            const googleLogin = document.getElementById('google-signin-btn-login'); if (googleLogin) googleLogin.textContent = t('google_login');
+
+            // Signup form
+            set('#signup-form h1', t('signup_title'));
+            set('#signup-form p', t('signup_sub'));
+            set('label[for="signup-email"]', t('email'));
+            set('label[for="signup-password"]', t('password'));
+            const signupBtn = document.querySelector('#signup-form .btn'); if (signupBtn) signupBtn.textContent = t('signup_btn');
+            const showLogin = document.getElementById('show-login'); if (showLogin) showLogin.textContent = t('goto_login');
+
+            // Reset form
+            set('#reset-password-form h1', t('reset_title'));
+            set('#reset-password-form p', t('reset_sub'));
+            const resetBtn = document.querySelector('#reset-password-form .btn'); if (resetBtn) resetBtn.textContent = t('reset_btn');
+            const backToLogin = document.getElementById('back-to-login'); if (backToLogin) backToLogin.textContent = t('back_to_login');
+
+            // Guest and links
+            const guest = document.getElementById('guest-login-btn'); if (guest) guest.textContent = t('guest');
+
+            // Placeholders
+            const loginEmail = document.getElementById('login-email'); if (loginEmail) loginEmail.placeholder = t('email');
+            const loginPassword = document.getElementById('login-password'); if (loginPassword) loginPassword.placeholder = t('password');
+            const signupEmail = document.getElementById('signup-email'); if (signupEmail) signupEmail.placeholder = t('email');
+            const signupPassword = document.getElementById('signup-password'); if (signupPassword) signupPassword.placeholder = t('password');
+            const resetEmail = document.getElementById('reset-email'); if (resetEmail) resetEmail.placeholder = t('email');
         },
 
         applyTasks() {
