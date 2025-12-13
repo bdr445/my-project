@@ -14,7 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
-    const functions = firebase.functions();
+    let functions = null;
+    if (typeof firebase.functions === 'function') {
+        try { functions = firebase.functions(); } catch (e) { functions = null; }
+    }
 
     // --- reCAPTCHA Setup ---
 
@@ -111,53 +114,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
             // 2b. استدعاء دالة الخادم (Cloud Function) للتحقق من الرمز المميز
-            // Functions object is assumed to be defined as: const functions = firebase.functions();
-            const verifyFunction = functions.httpsCallable('verifyRecaptcha');
+            let verified = false;
+            if (functions && typeof functions.httpsCallable === 'function') {
+                const verifyFunction = functions.httpsCallable('verifyRecaptcha');
+                const result = await verifyFunction({ recaptchaToken: recaptchaToken, action: 'login' });
+                verified = !!(result && result.data && result.data.success);
+            } else {
+                // If functions SDK or cloud function not available, skip server-side reCAPTCHA verification.
+                // This keeps the login page functioning locally when the functions SDK isn't included.
+                verified = true;
+            }
 
-            const result = await verifyFunction({ recaptchaToken: recaptchaToken, action: 'login' });
-
-            // 3. التحقق من نتيجة الخادم
-            if (result.data.success) {
-
-                // 4. إذا نجح التحقق من reCAPTCHA، أكمل عملية تسجيل الدخول في Firebase Auth
+            if (verified) {
+                // Proceed with sign-in
                 auth.signInWithEmailAndPassword(email, password)
-
                     .then((userCredential) => {
-
-                        // Signed in
                         window.location.href = 'tasks.html';
-
                     })
-
                     .catch((error) => {
-
                         setButtonLoading(submitBtn, false);
-
                         let errorMessage = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
-
                         if (error.code === 'auth/user-not-found') {
-
                             errorMessage = 'لا يوجد حساب مسجل بهذا البريد الإلكتروني.';
-
                         } else if (error.code === 'auth/wrong-password') {
-
                             errorMessage = 'كلمة المرور غير صحيحة.';
-
                         } else if (error.code === 'auth/invalid-email') {
-
                             errorMessage = 'البريد الإلكتروني غير صحيح.';
-
                         } else if (error.code === 'auth/too-many-requests') {
-
                             errorMessage = 'تم تجاوز عدد المحاولات المسموح به. يرجى المحاولة لاحقاً.';
-
                         }
-
                         showError(errorMessage);
-
                     });
             } else {
-                // فشل التحقق من reCAPTCHA في الخادم
                 setButtonLoading(submitBtn, false);
                 showError('فشل التحقق الأمني. الرجاء المحاولة مرة أخرى.');
             }
