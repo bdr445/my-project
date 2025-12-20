@@ -1,17 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Firebase Setup ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyBHc4QygGxRb8HNQSL3S4eo9QcRCYPBDLQ",
-        authDomain: "to-do-for-school-ee688.firebaseapp.com",
-        projectId: "to-do-for-school-ee688",
-        storageBucket: "to-do-for-school-ee688.appspot.com",
-        messagingSenderId: "890456526492",
-        appId: "1:890456526492:web:30ba2e598b5df8be4b6759",
-        measurementId: "G-LT1ZCLB5E5"
-    };
-
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+    // Firebase is initialized in firebase-init.js
     const auth = firebase.auth();
     const googleProvider = new firebase.auth.GoogleAuthProvider();
     let functions = null;
@@ -320,7 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isLoading) {
             button.disabled = true;
             button.dataset.originalHTML = button.innerHTML;
-            button.innerHTML = '<span class="loading-spinner"></span> جاري المعالجة...';
+            const loadingText = (window.I18N && I18N.t) ? I18N.t('login', 'processing') : 'جاري المعالجة...';
+            button.innerHTML = `<span class="loading-spinner"></span> ${loadingText}`;
         } else {
             button.disabled = false;
             if (button.dataset.originalHTML) {

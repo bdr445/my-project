@@ -2,7 +2,7 @@
 // It should be included in every HTML file that uses Firebase services.
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBHc4QygGxRb8HNQSL3S4eo9QcRCYPBDLQ", // It's better to use environment variables for this
+    apiKey: "AIzaSyBHc4QygGxRb8HNQSL3S4eo9QcRCYPBDLQ", // NOTE: For web apps, this key is not a secret. Security is handled by Firebase Rules.
     authDomain: "to-do-for-school-ee688.firebaseapp.com",
     projectId: "to-do-for-school-ee688",
     storageBucket: "to-do-for-school-ee688.appspot.com",

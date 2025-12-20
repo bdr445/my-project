@@ -6,10 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول - مدير المهام</title>
     <link rel="stylesheet" href="style.css">
-    <script src="i18n.js"></script>
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js" defer></script>
+    <script src="firebase-init.js" defer></script>
+    <script src="i18n.js" defer></script>
     <script src="login.js" defer></script>
     <!-- RECAPTCHA DISABLED TEMPORARILY
     <script
@@ -73,23 +74,6 @@
 
         <a href="#" id="guest-login-btn" class="guest-link">أو جرب التطبيق كزائر</a>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // دالة لتطبيق الترجمة
-            const applyTranslations = () => {
-                if (window.I18N) {
-                    I18N.applyLogin();
-                }
-            };
-
-            // تطبيق الترجمة عند تحميل الصفحة لأول مرة
-            applyTranslations();
-
-            // الاستماع لحدث تغيير اللغة لإعادة تطبيق الترجمة
-            document.addEventListener('language-changed', applyTranslations);
-        });
-    </script>
 </body>
 
 </html>

@@ -1,17 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Firebase Setup ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyBHc4QygGxRb8HNQSL3S4eo9QcRCYPBDLQ",
-        authDomain: "to-do-for-school-ee688.firebaseapp.com",
-        projectId: "to-do-for-school-ee688",
-        storageBucket: "to-do-for-school-ee688.appspot.com",
-        messagingSenderId: "890456526492",
-        appId: "1:890456526492:web:30ba2e598b5df8be4b6759",
-        measurementId: "G-LT1ZCLB5E5"
-    };
-
-    // Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
+    // Firebase is initialized in firebase-init.js
     const auth = firebase.auth();
     const db = firebase.firestore();
     let tasksCollection; // Will be defined after user logs in
@@ -105,11 +93,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Apply cached settings immediately on load (also for anonymous/guest users)
+    applySettingsFromCache();
+
     const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%230078d4'/><stop offset='100%' stop-color='%23205a9d'/></linearGradient></defs><rect width='120' height='120' rx='60' fill='url(%23g)'/><circle cx='60' cy='52' r='22' fill='white' fill-opacity='0.85'/><path d='M30 100c4-20 24-24 30-24s26 4 30 24' fill='white' fill-opacity='0.85' stroke='none'/></svg>";
 
     const setAvatar = (el, user, displayNameFallback) => {
         if (!el) return;
-        const name = user.isAnonymous ? 'زائر' : (user.displayName || displayNameFallback || 'مستخدم');
+        const visitorLabel = (window.I18N && I18N.t) ? I18N.t('login', 'visitor_name') : 'زائر';
+        const name = user.isAnonymous ? visitorLabel : (user.displayName || displayNameFallback || 'مستخدم');
         if (user.photoURL) {
             el.style.backgroundImage = `url('${user.photoURL}')`;
             el.textContent = '';
@@ -120,7 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const applyUserProfile = (user) => {
-        const displayName = user.isAnonymous ? "زائر" : (user.displayName || user.email.split('@')[0]);
+        const visitorLabel = (window.I18N && I18N.t) ? I18N.t('login', 'visitor_name') : 'زائر';
+        const displayName = user.isAnonymous ? visitorLabel : (user.displayName || user.email.split('@')[0]);
         if (accountMenuBtn) {
             accountMenuBtn.querySelector('.link-text').textContent = displayName;
         }
@@ -131,7 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (greetingTextEl) {
             const lang = window.I18N ? I18N.get() : 'ar';
             const prefix = lang === 'ar' ? 'مرحباً، ' : 'Hi, ';
-            greetingTextEl.textContent = `${prefix}${displayName}`;
+            // Preserve existing DOM structure (the span#user-name) and update only the name
+            if (userNameEl) {
+                // Ensure the greeting prefix remains intact
+                greetingTextEl.childNodes.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE) node.nodeValue = prefix;
+                });
+            } else {
+                // Fallback: replace whole text if the span is missing
+                greetingTextEl.textContent = `${prefix}${displayName}`;
+            }
         }
     };
 

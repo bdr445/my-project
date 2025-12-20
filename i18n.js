@@ -30,7 +30,9 @@
                 reset_sub: 'أدخل بريدك الإلكتروني وسنرسل لك رابطاً لإعادة التعيين.',
                 reset_btn: 'إرسال رابط إعادة التعيين',
                 back_to_login: 'العودة لتسجيل الدخول',
-                guest: 'أو جرب التطبيق كزائر'
+                guest: 'أو جرب التطبيق كزائر',
+                visitor_name: 'زائر',
+                processing: 'جاري المعالجة...'
             },
             tasks: {
                 home_link: 'الصفحة الرئيسية',
@@ -178,7 +180,9 @@
                 reset_sub: 'Enter your email and we will send you a reset link.',
                 reset_btn: 'Send reset link',
                 back_to_login: 'Back to sign in',
-                guest: 'Or try the app as a guest'
+                guest: 'Or try the app as a guest',
+                visitor_name: 'Guest',
+                processing: 'Processing...'
             },
             tasks: {
                 home_link: 'Home',
@@ -386,6 +390,16 @@
             // Guest and links
             const guest = document.getElementById('guest-login-btn'); if (guest) guest.textContent = t('guest');
 
+            // Update the small switch links that contain surrounding text + link
+            const loginSwitch = document.querySelector('#login-form .form-switch');
+            if (loginSwitch) {
+                loginSwitch.innerHTML = `${I18N.t('login', 'no_account', lang)} <a href="#" id="show-signup">${t('goto_signup')}</a>`;
+            }
+            const signupSwitch = document.querySelector('#signup-form .form-switch');
+            if (signupSwitch) {
+                signupSwitch.innerHTML = `${t('have_account')} <a href="#" id="show-login">${t('goto_login')}</a>`;
+            }
+
             // Placeholders
             const loginEmail = document.getElementById('login-email'); if (loginEmail) loginEmail.placeholder = t('email');
             const loginPassword = document.getElementById('login-password'); if (loginPassword) loginPassword.placeholder = t('password');
@@ -415,9 +429,34 @@
             const _logoutBtn = q('#logout-btn'); if (_logoutBtn) _logoutBtn.textContent = t('logout');
             const greetMain = q('.user-greeting-text');
             if (greetMain) {
-                const name = (document.getElementById('user-name')?.textContent || '...');
+                let name = '...';
+                try {
+                    const currentUser = (window.firebase && firebase.auth) ? firebase.auth().currentUser : null;
+                    if (currentUser) {
+                        if (currentUser.isAnonymous) {
+                            name = I18N.t('login', 'visitor_name', lang) || '...';
+                        } else {
+                            name = currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : '...');
+                        }
+                    } else {
+                        name = (document.getElementById('user-name')?.textContent || '...');
+                    }
+                } catch (e) {
+                    name = (document.getElementById('user-name')?.textContent || '...');
+                }
+
                 const prefix = lang === 'ar' ? 'مرحباً، ' : 'Hi, ';
-                greetMain.textContent = `${prefix}${name}`;
+                const userNameSpan = document.getElementById('user-name');
+                if (userNameSpan) {
+                    userNameSpan.textContent = name;
+                    if (userNameSpan.previousSibling && userNameSpan.previousSibling.nodeType === Node.TEXT_NODE) {
+                        userNameSpan.previousSibling.nodeValue = prefix;
+                    } else {
+                        greetMain.insertBefore(document.createTextNode(prefix), userNameSpan);
+                    }
+                } else {
+                    greetMain.textContent = `${prefix}${name}`;
+                }
             }
             const greetingSub = q('.user-greeting-sub'); if (greetingSub) greetingSub.textContent = t('greeting_sub');
             const search = q('#search-input'); if (search) search.placeholder = t('search_placeholder');
@@ -644,5 +683,19 @@
         setupPomodoroClickExpand();
     }
 
+    // Auto-apply translations on initial load
+    const init = () => {
+        const bodyClassList = document.body.classList;
+        if (bodyClassList.contains('home-page')) {
+            I18N.applyHome();
+        } else if (bodyClassList.contains('login-page')) {
+            I18N.applyLogin();
+        } else if (bodyClassList.contains('tasks-page')) {
+            I18N.applyTasks();
+        } else if (bodyClassList.contains('settings-page')) {
+            I18N.applySettingsPage();
+        }
+    };
+    document.addEventListener('DOMContentLoaded', init);
     window.I18N = I18N;
 })();

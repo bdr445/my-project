@@ -7,12 +7,12 @@
     <title>الإعدادات - TaskMaster</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="settings-style.css">
-    <script src="i18n.js"></script>
     <!-- Firebase SDK (v9 compat) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js" defer></script>
     <script src="firebase-init.js" defer></script>
+    <script src="i18n.js" defer></script>
     <script src="settings.js" defer></script>
 </head>
 
@@ -64,9 +64,9 @@
             </div>
 
             <div class="setting-group">
-                <h2>اللغة</h2>
+                <h2 id="language-label">اللغة</h2>
                 <div class="language-select-wrapper">
-                    <select id="language-select">
+                    <select id="language-select" aria-labelledby="language-label">
                         <option value="ar">العربية</option>
                         <option value="en">English</option>
                     </select>
@@ -82,9 +82,9 @@
             </div>
 
             <div class="setting-group">
-                <h2>نغمة المنبه</h2>
+                <h2 id="alarm-label">نغمة المنبه</h2>
                 <div class="alarm-sound-select-wrapper">
-                    <select id="alarm-sound-select" class="alarm-select">
+                    <select id="alarm-sound-select" class="alarm-select" aria-labelledby="alarm-label">
                         <option value="gentle">منبه هادئ</option>
                         <option value="chime">نغمة ناعمة</option>
                         <option value="marimba">نغمة مرحة</option>
@@ -114,14 +114,6 @@
 
         </div>
     </main>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.I18N) {
-                I18N.applySettingsPage();
-            }
-        });
-    </script>
 </body>
 
 </html>
